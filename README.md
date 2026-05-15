@@ -36,7 +36,7 @@ Voyager is a collaborative multi-agent AI travel planning system that generates 
 
 ## System Architecture
 
-<img src="docs/diagrams/Voyager-travel-agent.drawio.png" alt="Voyager Travel Agent - System Architecture" width="75%">
+<img src="docs/diagrams/Voyager-travel-agent.drawio.png" alt="Voyager Travel Agent - System Architecture" width="100%">
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
