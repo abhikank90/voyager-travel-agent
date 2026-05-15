@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "Bash(python3:*)",
+      "WebFetch(domain:diagrams.mingrammer.com)",
+      "Bash(pip install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

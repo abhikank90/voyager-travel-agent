@@ -1,0 +1,102 @@
+{
+  "destinations": [
+    {
+      "name": "Greece",
+      "region": "Mediterranean",
+      "popular_interests": ["beaches", "local food", "history", "sailing", "nightlife"],
+      "best_months": ["May", "June", "September", "October"],
+      "peak_months": ["July", "August"],
+      "top_beaches": [
+        "Navagio Beach, Zakynthos",
+        "Elafonissi Beach, Crete",
+        "Myrtos Beach, Kefalonia",
+        "Oia Beach, Santorini",
+        "Paradise Beach, Mykonos"
+      ],
+      "top_restaurants": [
+        "Selene, Santorini — upscale modern Greek",
+        "Strofi, Athens — classic Greek near Acropolis",
+        "To Maereio, Athens — traditional taverna",
+        "Nikos Taverna, Mykonos — fresh seafood",
+        "Elia, Thessaloniki — mezze specialist"
+      ],
+      "must_see": [
+        "Acropolis, Athens",
+        "Santorini caldera",
+        "Meteora monasteries",
+        "Delphi archaeological site",
+        "Palace of Knossos, Crete"
+      ],
+      "avg_daily_cost_usd": 120,
+      "currency": "EUR",
+      "language": "Greek",
+      "time_zone": "EET (UTC+2)",
+      "visa_us_citizens": "No visa required (Schengen, 90 days)",
+      "safety_rating": 1
+    },
+    {
+      "name": "Japan",
+      "region": "East Asia",
+      "popular_interests": ["temples", "street food", "anime", "nature", "technology"],
+      "best_months": ["March", "April", "October", "November"],
+      "peak_months": ["March", "April", "August"],
+      "top_beaches": [
+        "Okinawa Main Island beaches",
+        "Miyako Island, Okinawa",
+        "Shirahama Beach, Wakayama"
+      ],
+      "top_restaurants": [
+        "Sukiyabashi Jiro, Tokyo — sushi (reservation months ahead)",
+        "Ichiran, Tokyo/Osaka — ramen",
+        "Nishiki Market stalls, Kyoto",
+        "Dotonbori food street, Osaka",
+        "Tsukiji Outer Market, Tokyo"
+      ],
+      "must_see": [
+        "Fushimi Inari, Kyoto",
+        "Mount Fuji",
+        "Shibuya Crossing, Tokyo",
+        "Hiroshima Peace Memorial",
+        "Arashiyama Bamboo Grove"
+      ],
+      "avg_daily_cost_usd": 150,
+      "currency": "JPY",
+      "language": "Japanese",
+      "time_zone": "JST (UTC+9)",
+      "visa_us_citizens": "No visa required (90 days)",
+      "safety_rating": 1
+    },
+    {
+      "name": "France",
+      "region": "Western Europe",
+      "popular_interests": ["art", "food", "wine", "romance", "fashion"],
+      "best_months": ["April", "May", "September", "October"],
+      "peak_months": ["July", "August"],
+      "top_beaches": [
+        "Nice Beach, French Riviera",
+        "Pampelonne Beach, Saint-Tropez",
+        "Plage de Palombaggia, Corsica"
+      ],
+      "top_restaurants": [
+        "Septime, Paris — modern French bistro",
+        "Le Comptoir du Relais, Paris — classic",
+        "Chez L'Ami Jean, Paris — Basque cuisine",
+        "Le Petit Nice, Marseille — seafood",
+        "Paul Bocuse, Lyon — legendary French"
+      ],
+      "must_see": [
+        "Eiffel Tower, Paris",
+        "Louvre Museum",
+        "Mont Saint-Michel",
+        "Palace of Versailles",
+        "French Riviera"
+      ],
+      "avg_daily_cost_usd": 160,
+      "currency": "EUR",
+      "language": "French",
+      "time_zone": "CET (UTC+1)",
+      "visa_us_citizens": "No visa required (Schengen, 90 days)",
+      "safety_rating": 2
+    }
+  ]
+}
