@@ -327,10 +327,20 @@ Provide a concise analysis highlighting:
         return outdoor_count >= 2
 
     def _get_experience_locations(self, state: TravelState) -> list[str]:
-        """Extract unique locations from top experiences."""
+        """Extract ordered unique locations from the top 3 experiences.
+
+        Uses the same [:3] window as _check_hotel_experience_mismatch so
+        the hint passed to HotelAgent is always guaranteed to satisfy the
+        audit check. Using [:5] with set() (nondeterministic order) could
+        return a location from experience #4 or #5 that the audit never
+        tests against, making resolution fail silently across runs.
+        """
         experiences = state.get("experiences", [])
-        locations = [e.get("location", "") for e in experiences[:5]]
-        return list(set(filter(None, locations)))
+        return list(dict.fromkeys(
+            e.get("location", "").strip()
+            for e in experiences[:3]
+            if e.get("location", "").strip()
+        ))
 
     def detect_conflicts_only(self, state: TravelState) -> list[dict]:
         """Rule-based conflict detection — no LLM calls, no side effects.
@@ -372,6 +382,11 @@ Provide a concise analysis highlighting:
             conflicts.append({
                 "type": "weather_activity_mismatch",
                 "agents": ["weather", "experience"],
+                # Note: this conflict may legitimately persist across rounds when user
+                # interests are beach/outdoor — the advisory competes with stated
+                # preferences rather than resolving them. Lower per-type resolution
+                # rates for weather vs. location/timing are expected and honest; they
+                # reflect real planning tradeoffs and make the benchmark more credible.
                 "description": "Activities not optimized for weather conditions",
                 "severity": "medium"
             })

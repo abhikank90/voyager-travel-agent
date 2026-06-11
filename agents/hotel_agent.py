@@ -90,7 +90,24 @@ class HotelAgent(BaseAgent):
 
         hotels = result.get("hotels", [])
         affordable = [h for h in hotels if h["total_usd"] <= hotel_budget]
-        best = affordable[0] if affordable else (hotels[0] if hotels else None)
+        candidates = affordable if affordable else hotels
+
+        if not candidates:
+            best = None
+        elif location_hint:
+            # Mirror the flight agent's pattern: prefer candidates whose location
+            # matches the hub's hint; fall back to first candidate if none qualify.
+            # This makes consumption robust to ordering and works identically for
+            # both real API results and mock data.
+            hint_lower = location_hint.lower()
+            matching = [
+                h for h in candidates
+                if hint_lower in h.get("location", "").lower()
+                or h.get("location", "").lower() in hint_lower
+            ]
+            best = matching[0] if matching else candidates[0]
+        else:
+            best = candidates[0]
 
         return {
             "hotels": hotels,

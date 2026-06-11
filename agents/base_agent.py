@@ -54,6 +54,10 @@ class BaseAgent(ABC):
         short = getattr(self, "short_name", None)
         if short:
             my_ids.add(short)
+        # round < current_round intentionally includes messages from all prior
+        # rounds (not just round - 1). Constraints are idempotent — applying
+        # the same location hint or timing preference twice changes nothing —
+        # so accumulating them is harmless and avoids needing per-round bookkeeping.
         return [
             m for m in state.get("agent_messages", [])
             if m.get("to_agent") in my_ids | {"all"}
