@@ -183,7 +183,8 @@ async def plan_collaborative_trip(
         final_state = await run_collaborative_travel_query(
             travel_request.query,
             travel_request.user_id,
-            session_id
+            session_id,
+            record_metrics=False,
         )
         return CollaborativeTravelResponse(
             session_id=session_id,

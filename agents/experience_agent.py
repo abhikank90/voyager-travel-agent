@@ -20,7 +20,9 @@ Interests: {interests}
 Budget for activities (USD): {activity_budget}
 Duration: {duration_days} days
 
-Provide a JSON list of experiences with: name, description, cost_usd, category, best_time_of_day.
+Provide a JSON list of experiences with: name, description, cost_usd, category, best_time_of_day,
+and location (the specific neighborhood, area, or part of {destination} where this takes place —
+e.g. "Oia, Santorini" or "Plaka district" or "Chaweng Beach").
 Return ONLY valid JSON array."""
 
 
@@ -99,7 +101,7 @@ class ExperienceAgent(BaseAgent):
 
     def _fallback_experiences(self, destination: str, interests: list) -> list:
         return [
-            {"name": f"Beach Day at {destination}", "description": "Relax on beautiful beaches", "cost_usd": 0, "category": "beach", "best_time_of_day": "morning"},
-            {"name": "Local Food Tour", "description": "Sample authentic local cuisine", "cost_usd": 50, "category": "food", "best_time_of_day": "evening"},
-            {"name": "Historical Sites Visit", "description": "Explore ancient ruins and monuments", "cost_usd": 25, "category": "culture", "best_time_of_day": "morning"},
+            {"name": f"Beach Day at {destination}", "description": "Relax on beautiful beaches", "cost_usd": 0, "category": "beach", "best_time_of_day": "morning", "location": "South Beach Area"},
+            {"name": "Local Food Tour", "description": "Sample authentic local cuisine", "cost_usd": 50, "category": "food", "best_time_of_day": "evening", "location": "Old Town"},
+            {"name": "Historical Sites Visit", "description": "Explore ancient ruins and monuments", "cost_usd": 25, "category": "culture", "best_time_of_day": "morning", "location": "City Center"},
         ]

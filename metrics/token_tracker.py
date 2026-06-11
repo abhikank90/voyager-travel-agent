@@ -75,13 +75,33 @@ def compute_cost(input_tokens: int, output_tokens: int, pricing) -> float:
 
 
 class TokenTrackingCallback(BaseCallbackHandler):
-    """LangChain callback that feeds ChatAnthropic usage into the session accumulator."""
+    """LangChain callback that feeds ChatAnthropic usage into the session accumulator.
+
+    ChatGeneration stores usage on its .message (AIMessage), not on the generation
+    object itself. Two paths are tried for cross-version compatibility:
+      1. msg.usage_metadata  — langchain-core >= 0.2 standard field
+      2. msg.response_metadata["usage"]  — Anthropic provider-specific fallback
+    """
 
     def on_llm_end(self, response: LLMResult, **kwargs) -> None:
         for generations in response.generations:
             for gen in generations:
-                metadata = getattr(gen, "response_metadata", None) or {}
-                usage = metadata.get("usage", {})
+                msg = getattr(gen, "message", None)
+                if msg is None:
+                    continue
+
+                # Path 1: standard usage_metadata (langchain-core >= 0.2)
+                usage_meta = getattr(msg, "usage_metadata", None)
+                if usage_meta:
+                    track_usage(
+                        input_tokens=usage_meta.get("input_tokens", 0),
+                        output_tokens=usage_meta.get("output_tokens", 0),
+                    )
+                    continue
+
+                # Path 2: provider response_metadata (Anthropic SDK shape)
+                resp_meta = getattr(msg, "response_metadata", None) or {}
+                usage = resp_meta.get("usage", {})
                 if usage:
                     track_usage(
                         input_tokens=usage.get("input_tokens", 0),

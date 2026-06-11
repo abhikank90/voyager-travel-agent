@@ -5,6 +5,7 @@ Analyzes findings from all research agents, identifies conflicts and synergies,
 and sends targeted messages to agents for refinement in subsequent rounds.
 """
 
+from datetime import datetime
 from typing import Any
 from anthropic import Anthropic
 from config import get_api_config
@@ -253,7 +254,6 @@ Provide a concise analysis highlighting:
 
     def _check_hotel_experience_mismatch(self, state: TravelState) -> bool:
         """Check if hotel location is far from main activities."""
-        # Simplified check - in production, use geocoding
         hotel = state.get("selected_hotel", {})
         experiences = state.get("experiences", [])
 
@@ -261,36 +261,53 @@ Provide a concise analysis highlighting:
             return False
 
         hotel_location = hotel.get("location", "").lower()
-        experience_locations = [e.get("location", "").lower() for e in experiences[:3]]
+        if not hotel_location:
+            return False
 
-        # Simple heuristic: if hotel location doesn't match any top experience locations
-        matches = any(loc in hotel_location or hotel_location in loc for loc in experience_locations)
+        # Filter out empty strings — an absent location can't be a mismatch
+        experience_locations = [
+            e.get("location", "").lower()
+            for e in experiences[:3]
+            if e.get("location", "").strip()
+        ]
+        if not experience_locations:
+            return False
+
+        matches = any(
+            loc in hotel_location or hotel_location in loc
+            for loc in experience_locations
+        )
         return not matches
 
     def _check_flight_timing_issue(self, state: TravelState) -> bool:
-        """Check if flight times waste partial days."""
+        """Check if flight times waste partial days.
+
+        FlightAgent emits ISO datetime strings in 'departure' and 'arrival'.
+        """
         flight = state.get("selected_flight", {})
         if not flight:
             return False
 
-        arrival_time = flight.get("arrival_time", "")
-        departure_time = flight.get("departure_time", "")
-
-        # Simple check: late arrivals (after 8pm) or early departures (before 10am) waste days
-        if arrival_time and ":" in arrival_time:
-            hour = int(arrival_time.split(":")[0])
-            if hour >= 20:  # 8pm or later
+        for field, threshold, late in (("arrival", 20, True), ("departure", 10, False)):
+            raw = flight.get(field, "")
+            if not raw:
+                continue
+            try:
+                hour = datetime.fromisoformat(raw).hour
+            except ValueError:
+                continue
+            if late and hour >= threshold:
                 return True
-
-        if departure_time and ":" in departure_time:
-            hour = int(departure_time.split(":")[0])
-            if hour < 10:  # before 10am
+            if not late and hour < threshold:
                 return True
 
         return False
 
     def _check_weather_activity_mismatch(self, state: TravelState) -> bool:
-        """Check if activities don't match weather conditions."""
+        """Check if planned activities don't suit the weather conditions.
+
+        WeatherAgent emits 'summary' (text) and 'precipitation_mm'.
+        """
         weather = state.get("weather", {})
         experiences = state.get("experiences", [])
 
@@ -298,15 +315,25 @@ Provide a concise analysis highlighting:
             return False
 
         avg_temp = weather.get("avg_temp_c", 25)
-        conditions = weather.get("conditions", "").lower()
+        summary = weather.get("summary", "").lower()
+        precipitation = weather.get("precipitation_mm", 0)
 
-        # Check for extreme heat or rain
-        if avg_temp > 35 or "rain" in conditions or "storm" in conditions:
-            # Check if experiences are mostly outdoor
-            outdoor_count = sum(1 for e in experiences[:5] if "beach" in e.get("name", "").lower() or "outdoor" in e.get("description", "").lower())
-            return outdoor_count > 3
+        extreme_heat = avg_temp >= 32
+        significant_rain = precipitation > 50 or any(
+            kw in summary for kw in ("rain", "storm", "monsoon", "heavy shower")
+        )
 
-        return False
+        if not (extreme_heat or significant_rain):
+            return False
+
+        outdoor_count = sum(
+            1 for e in experiences[:5]
+            if "beach" in e.get("name", "").lower()
+            or "outdoor" in e.get("description", "").lower()
+            or "outdoor" in e.get("category", "").lower()
+            or "beach" in e.get("category", "").lower()
+        )
+        return outdoor_count >= 2
 
     def _get_experience_locations(self, state: TravelState) -> list[str]:
         """Extract unique locations from top experiences."""

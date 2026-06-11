@@ -171,12 +171,18 @@ async def research_round_3(state: TravelState) -> TravelState:
     for conflict in conflicts:
         agents_in_conflict.update(conflict.get("agents", []))
 
+    # Only flight/hotel/experience can be re-run; weather and visa_safety are
+    # read-only data sources that don't benefit from a second pass here.
+    # Counting agents_in_conflict directly (which can include "weather") would
+    # inflate the rerun metric and corrupt the savings calculation.
+    rerunnable = agents_in_conflict & {"flight", "hotel", "experience"}
+
     tasks = []
-    if "flight" in agents_in_conflict:
+    if "flight" in rerunnable:
         tasks.append(_flight.run(state))
-    if "hotel" in agents_in_conflict:
+    if "hotel" in rerunnable:
         tasks.append(_hotel.run(state))
-    if "experience" in agents_in_conflict:
+    if "experience" in rerunnable:
         tasks.append(_experience.run(state))
 
     results = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
@@ -189,8 +195,8 @@ async def research_round_3(state: TravelState) -> TravelState:
     existing = state.get("run_metrics") or {}
     merged["run_metrics"] = {
         **existing,
-        "round_3_agents_rerun": sorted(agents_in_conflict),
-        "round_3_agents_rerun_count": len(agents_in_conflict),
+        "round_3_agents_rerun": sorted(rerunnable),
+        "round_3_agents_rerun_count": len(rerunnable),
         "round_3_duration_s": round(time.perf_counter() - t0, 2),
     }
     return merged
@@ -350,12 +356,16 @@ async def run_collaborative_travel_query(
     user_id: str = "anonymous",
     session_id: str = None,
     enable_refinement: bool = True,
+    record_metrics: bool = True,
 ) -> dict:
     """Entry point: run collaborative multi-agent graph (generates 3 options).
 
     Args:
         enable_refinement: When False, skips Rounds 2/3 entirely (baseline mode).
             Used by the benchmark script to produce before/after comparisons.
+        record_metrics: When False, suppresses writing to metrics/sessions.jsonl.
+            Set False on the API path so live user requests don't pollute the
+            benchmark dataset.
     """
     import uuid
     from metrics.collector import record_session
@@ -393,12 +403,13 @@ async def run_collaborative_travel_query(
         if usage else 0.0
     )
 
-    record_session(
-        final_state,
-        query=user_query,
-        duration_s=duration,
-        mode="full" if enable_refinement else "baseline",
-        token_usage=usage,
-        estimated_cost_usd=estimated_cost,
-    )
+    if record_metrics:
+        record_session(
+            final_state,
+            query=user_query,
+            duration_s=duration,
+            mode="full" if enable_refinement else "baseline",
+            token_usage=usage,
+            estimated_cost_usd=estimated_cost,
+        )
     return final_state

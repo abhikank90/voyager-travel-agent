@@ -193,16 +193,10 @@ def print_summary() -> None:
         if resolution_rates:
             print(f"\n  CONFLICT RESOLUTION  (full mode only)")
             print(f"  Overall resolution rate            {_avg(resolution_rates, 0):.0f}%")
-            # Per-type resolution
             type_r1: dict[str, int] = {}
-            type_final: dict[str, int] = {}
             for s in sessions:
                 for ct in s.get("round_1_conflict_types", []):
                     type_r1[ct] = type_r1.get(ct, 0) + 1
-            for s in sessions:
-                for ct in (s.get("round_3_agents_rerun") or []):  # crude proxy — skip for now
-                    pass
-            # Simpler: just show per-type counts
             if type_r1:
                 print(f"  Conflict types detected:")
                 for ctype, count in sorted(type_r1.items(), key=lambda x: -x[1]):
