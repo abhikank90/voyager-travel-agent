@@ -11,6 +11,7 @@ from anthropic import Anthropic
 from config import get_api_config
 from agents.base_agent import BaseAgent
 from graph.state import TravelState, TripOption
+from metrics.token_tracker import track_usage
 
 
 class OptionGeneratorAgent(BaseAgent):
@@ -298,6 +299,7 @@ Return ONLY a JSON array of day objects with this structure:
             temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
+        track_usage(response.usage.input_tokens, response.usage.output_tokens)
 
         itinerary_text = response.content[0].text
 

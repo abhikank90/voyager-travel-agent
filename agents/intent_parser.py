@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 import json
 
 from .base_agent import BaseAgent
+from metrics.token_tracker import TokenTrackingCallback
 
 
 class TravelIntent(BaseModel):
@@ -42,6 +43,7 @@ class IntentParserAgent(BaseAgent):
         self.llm = ChatAnthropic(
             model="claude-sonnet-4-6",
             temperature=0,
+            callbacks=[TokenTrackingCallback()],
         ).with_structured_output(TravelIntent)
 
         self.prompt = ChatPromptTemplate.from_messages([

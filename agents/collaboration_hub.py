@@ -10,6 +10,7 @@ from anthropic import Anthropic
 from config import get_api_config
 from agents.base_agent import BaseAgent
 from graph.state import TravelState, CollaborationMessage
+from metrics.token_tracker import track_usage
 
 
 class CollaborationHubAgent(BaseAgent):
@@ -48,20 +49,28 @@ class CollaborationHubAgent(BaseAgent):
                 "content": analysis_prompt
             }]
         )
+        track_usage(response.usage.input_tokens, response.usage.output_tokens)
 
+        # Generates a narrative summary of cross-agent findings for display in
+        # the UI (stored in shared_discoveries["hub_narrative"]). Conflict
+        # detection and message routing are intentionally rule-based — see
+        # _identify_conflicts — to keep benchmarks deterministic. An
+        # LLM-augmented detector is tracked as a roadmap item.
         analysis_text = response.content[0].text
 
-        # Generate collaboration messages based on analysis
-        messages = self._generate_collaboration_messages(state, analysis_text, round=1)
+        messages = self._generate_collaboration_messages(state, round=1)
         conflicts = self._identify_conflicts(state)
         synergies = self._identify_synergies(state)
+
+        shared = self._extract_shared_insights(state)
+        shared["hub_narrative"] = analysis_text
 
         return {
             "agent_messages": messages,
             "conflicts": conflicts,
             "synergies": synergies,
             "collaboration_round": 1,
-            "shared_discoveries": self._extract_shared_insights(state)
+            "shared_discoveries": shared
         }
 
     async def _analyze_round_2(self, state: TravelState) -> dict:
@@ -75,7 +84,7 @@ class CollaborationHubAgent(BaseAgent):
         messages = []
         if not resolved and len(current_conflicts) > 0:
             # Need another round of refinement
-            messages = self._generate_collaboration_messages(state, "", round=2)
+            messages = self._generate_collaboration_messages(state, round=2)
 
         return {
             "agent_messages": messages,
@@ -163,10 +172,9 @@ Provide a concise analysis highlighting:
     def _generate_collaboration_messages(
         self,
         state: TravelState,
-        analysis: str,
         round: int
     ) -> list[CollaborationMessage]:
-        """Generate messages to send to specific agents based on analysis."""
+        """Generate targeted messages for agents based on rule-detected conflicts."""
 
         messages: list[CollaborationMessage] = []
 
@@ -306,8 +314,24 @@ Provide a concise analysis highlighting:
         locations = [e.get("location", "") for e in experiences[:5]]
         return list(set(filter(None, locations)))
 
+    def detect_conflicts_only(self, state: TravelState) -> list[dict]:
+        """Rule-based conflict detection — no LLM calls, no side effects.
+        Used for the final audit and baseline comparisons."""
+        return self._identify_conflicts(state)
+
     def _identify_conflicts(self, state: TravelState) -> list[dict]:
-        """Identify specific conflicts between agent findings."""
+        """Detect conflicts between agent findings using deterministic rules.
+
+        This method is the pluggable detection interface. The current
+        implementation uses hand-coded heuristics for reproducibility.
+
+        Roadmap: replace or augment with an LLM-augmented detector where
+        Claude proposes candidate conflicts from free-text agent outputs,
+        and these rules act as a validation layer. That extension keeps
+        benchmarks comparable (rules stay as the stable baseline) while
+        unlocking conflict types that are hard to enumerate upfront —
+        e.g. cultural-calendar mismatches or multi-hop itinerary loops.
+        """
         conflicts = []
 
         if self._check_hotel_experience_mismatch(state):

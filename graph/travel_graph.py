@@ -1,19 +1,25 @@
 """
 Main LangGraph state machine for Voyager Travel Agent - Collaborative Multi-Agent Design.
 
-Flow:
+Flow (full mode):
   personalisation → intent_parser
       → ROUND 1: [parallel fan-out: flight, hotel, experience, weather, visa_safety]
-      → collaboration_hub_1 (analyze, send messages)
-      → ROUND 2: [parallel refinement based on peer feedback]
-      → collaboration_hub_2 (check conflicts resolved)
-      → ROUND 3: [final optimization if needed]
+      → collaboration_hub_1  (analyze, send messages, snapshot round-1 conflicts)
+      → ROUND 2: [selective re-run of agents that received messages]
+      → collaboration_hub_2  (check if conflicts resolved)
+      → ROUND 3: [final optimization if still conflicting]
+      → final_conflict_audit (rule-based only — no LLM, records final conflict state)
       → budget_guardrail
-      → option_generator (creates 3 variants: budget, balanced, premium)
+      → option_generator (3 variants: budget, balanced, premium)
       → END
+
+Flow (baseline mode, enable_refinement=False):
+  ... → collaboration_hub_1 → final_conflict_audit → budget_guardrail → option_generator → END
+  Rounds 2 and 3 are skipped entirely; used for before/after comparison.
 """
 
 import asyncio
+import time
 from typing import Literal
 
 from langgraph.graph import StateGraph, END
@@ -35,6 +41,7 @@ from agents import (
 )
 from graph.state import TravelState
 
+_AGENTS_ALL = {"flight", "hotel", "experience", "weather", "visa_safety"}
 
 # ── Agent singletons ────────────────────────────────────────────────────────
 _personalisation = PersonalisationAgent()
@@ -60,9 +67,9 @@ async def intent_parser_node(state: TravelState) -> TravelState:
 
 
 async def research_round_1(state: TravelState) -> TravelState:
-    """Round 1: Initial research - all 5 agents run in parallel."""
-    # Set round number
+    """Round 1: Initial research — all 5 agents run in parallel."""
     state["collaboration_round"] = 1
+    t0 = time.perf_counter()
 
     results = await asyncio.gather(
         _flight.run(state),
@@ -77,34 +84,40 @@ async def research_round_1(state: TravelState) -> TravelState:
     for r in results:
         if isinstance(r, dict):
             merged.update(r)
-        # exceptions are logged by base_agent; we silently skip them here
+
+    existing = state.get("run_metrics") or {}
+    merged["run_metrics"] = {**existing, "round_1_duration_s": round(time.perf_counter() - t0, 2)}
     return merged
 
 
-async def collaboration_hub_node(state: TravelState) -> TravelState:
-    """Run collaboration hub to analyze findings and generate messages."""
-    return await _collaboration_hub.run(state)
+async def collaboration_hub_1_node(state: TravelState) -> TravelState:
+    """Round 1 hub: analyze findings, generate peer messages, snapshot conflicts."""
+    result = await _collaboration_hub.run(state)
+
+    # Preserve the Round-1 conflicts before hub_2 may overwrite state["conflicts"]
+    conflicts = result.get("conflicts") if result.get("conflicts") is not None else state.get("conflicts", [])
+    existing = {**(state.get("run_metrics") or {}), **(result.get("run_metrics") or {})}
+    result["run_metrics"] = {**existing, "round_1_conflicts": list(conflicts)}
+    return result
 
 
 async def research_round_2(state: TravelState) -> TravelState:
-    """Round 2: Refinement based on collaboration messages."""
-    # Update round number
+    """Round 2: Selective re-run of agents that received collaboration messages."""
     state["collaboration_round"] = 2
+    t0 = time.perf_counter()
 
-    # Re-run agents that received messages
     messages = state.get("agent_messages", [])
-    agents_to_rerun = set()
-
+    agents_to_rerun: set[str] = set()
     for msg in messages:
         target = msg.get("to_agent", "")
         if target != "all":
             agents_to_rerun.add(target)
 
-    # Run targeted agents or all if "all" was targeted
     has_all_message = any(msg.get("to_agent") == "all" for msg in messages)
+    full_rerun = has_all_message or len(agents_to_rerun) >= 3
+    rerun_names = sorted(_AGENTS_ALL) if full_rerun else sorted(agents_to_rerun)
 
-    if has_all_message or len(agents_to_rerun) >= 3:
-        # Re-run all research agents
+    if full_rerun:
         results = await asyncio.gather(
             _flight.run(state),
             _hotel.run(state),
@@ -114,7 +127,6 @@ async def research_round_2(state: TravelState) -> TravelState:
             return_exceptions=True,
         )
     else:
-        # Selectively re-run only agents that need refinement
         tasks = []
         if "flight" in agents_to_rerun:
             tasks.append(_flight.run(state))
@@ -126,7 +138,6 @@ async def research_round_2(state: TravelState) -> TravelState:
             tasks.append(_weather.run(state))
         if "visa_safety" in agents_to_rerun:
             tasks.append(_visa_safety.run(state))
-
         results = await asyncio.gather(*tasks, return_exceptions=True) if tasks else []
 
     merged: TravelState = {"collaboration_round": 2}
@@ -134,26 +145,33 @@ async def research_round_2(state: TravelState) -> TravelState:
         if isinstance(r, dict):
             merged.update(r)
 
+    existing = state.get("run_metrics") or {}
+    merged["run_metrics"] = {
+        **existing,
+        "round_2_agents_rerun": rerun_names,
+        "round_2_agents_rerun_count": len(rerun_names),
+        "round_2_full_rerun": full_rerun,
+        "round_2_duration_s": round(time.perf_counter() - t0, 2),
+    }
     return merged
 
 
+async def collaboration_hub_2_node(state: TravelState) -> TravelState:
+    """Round 2 hub: check if conflicts are resolved."""
+    return await _collaboration_hub.run(state)
+
+
 async def research_round_3(state: TravelState) -> TravelState:
-    """Round 3: Final optimization (if needed)."""
+    """Round 3: Final selective optimization based on remaining conflicts."""
     state["collaboration_round"] = 3
+    t0 = time.perf_counter()
 
-    # Run targeted refinements based on remaining conflicts
     conflicts = state.get("conflicts", [])
-
-    if not conflicts:
-        # No conflicts, just pass through
-        return {"collaboration_round": 3}
-
-    # Re-run only agents involved in conflicts
-    tasks = []
-    agents_in_conflict = set()
+    agents_in_conflict: set[str] = set()
     for conflict in conflicts:
         agents_in_conflict.update(conflict.get("agents", []))
 
+    tasks = []
     if "flight" in agents_in_conflict:
         tasks.append(_flight.run(state))
     if "hotel" in agents_in_conflict:
@@ -168,7 +186,22 @@ async def research_round_3(state: TravelState) -> TravelState:
         if isinstance(r, dict):
             merged.update(r)
 
+    existing = state.get("run_metrics") or {}
+    merged["run_metrics"] = {
+        **existing,
+        "round_3_agents_rerun": sorted(agents_in_conflict),
+        "round_3_agents_rerun_count": len(agents_in_conflict),
+        "round_3_duration_s": round(time.perf_counter() - t0, 2),
+    }
     return merged
+
+
+async def final_conflict_audit_node(state: TravelState) -> TravelState:
+    """Rule-based conflict detection only — no LLM, no side effects.
+    Records the true final conflict state for resolution-rate calculation."""
+    final_conflicts = _collaboration_hub.detect_conflicts_only(state)
+    existing = state.get("run_metrics") or {}
+    return {"run_metrics": {**existing, "final_conflicts": final_conflicts}}
 
 
 async def budget_guardrail_node(state: TravelState) -> TravelState:
@@ -198,73 +231,67 @@ async def retry_research_node(state: TravelState) -> TravelState:
 
 
 async def itinerary_builder_node(state: TravelState) -> TravelState:
-    """Build single itinerary (legacy - used for backward compatibility)."""
+    """Build single itinerary (legacy — used for backward compatibility)."""
     return await _itinerary_builder.run(state)
 
 
 # ── Routing ──────────────────────────────────────────────────────────────────
-def route_after_hub_1(state: TravelState) -> Literal["research_round_2", "budget_guardrail"]:
-    """After first collaboration, decide if we need round 2."""
+def route_after_hub_1(
+    state: TravelState,
+) -> Literal["research_round_2", "final_conflict_audit"]:
+    """After Round-1 hub: skip refinement in baseline mode or when no conflicts."""
+    if not state.get("enable_refinement", True):
+        return "final_conflict_audit"
     messages = state.get("agent_messages", [])
     conflicts = state.get("conflicts", [])
-
-    # If there are messages or conflicts, do round 2
     if messages or conflicts:
         return "research_round_2"
-    else:
-        # Skip to budget check
-        return "budget_guardrail"
+    return "final_conflict_audit"
 
 
-def route_after_hub_2(state: TravelState) -> Literal["research_round_3", "budget_guardrail"]:
-    """After second collaboration, decide if we need round 3."""
+def route_after_hub_2(
+    state: TravelState,
+) -> Literal["research_round_3", "final_conflict_audit"]:
+    """After Round-2 hub: do Round 3 only if conflicts remain."""
     conflicts = state.get("conflicts", [])
     round_num = state.get("collaboration_round", 1)
-
-    # If still have conflicts and we haven't done round 3 yet
     if conflicts and round_num < 3:
         return "research_round_3"
-    else:
-        return "budget_guardrail"
+    return "final_conflict_audit"
 
 
 # ── Graph assembly ───────────────────────────────────────────────────────────
 def build_collaborative_graph() -> CompiledStateGraph:
-    """Build the new collaborative multi-agent graph."""
+    """Build the collaborative multi-agent graph."""
     g = StateGraph(TravelState)
 
-    # Add all nodes
     g.add_node("personalisation", personalisation_node)
     g.add_node("intent_parser", intent_parser_node)
-
-    # Research rounds
     g.add_node("research_round_1", research_round_1)
-    g.add_node("collaboration_hub_1", collaboration_hub_node)
+    g.add_node("collaboration_hub_1", collaboration_hub_1_node)
     g.add_node("research_round_2", research_round_2)
-    g.add_node("collaboration_hub_2", collaboration_hub_node)
+    g.add_node("collaboration_hub_2", collaboration_hub_2_node)
     g.add_node("research_round_3", research_round_3)
-
-    # Final stages
+    g.add_node("final_conflict_audit", final_conflict_audit_node)
     g.add_node("budget_guardrail", budget_guardrail_node)
     g.add_node("option_generator", option_generator_node)
 
-    # Wire the graph
     g.set_entry_point("personalisation")
     g.add_edge("personalisation", "intent_parser")
     g.add_edge("intent_parser", "research_round_1")
     g.add_edge("research_round_1", "collaboration_hub_1")
 
-    # Conditional: Need round 2?
+    # After Round-1 hub: full mode → Round 2; baseline mode or no conflicts → audit
     g.add_conditional_edges("collaboration_hub_1", route_after_hub_1)
 
-    # After round 2
     g.add_edge("research_round_2", "collaboration_hub_2")
 
-    # Conditional: Need round 3?
+    # After Round-2 hub: still conflicting → Round 3; otherwise → audit
     g.add_conditional_edges("collaboration_hub_2", route_after_hub_2)
 
-    # Final path
-    g.add_edge("research_round_3", "budget_guardrail")
+    # All paths converge at final_conflict_audit before budget validation
+    g.add_edge("research_round_3", "final_conflict_audit")
+    g.add_edge("final_conflict_audit", "budget_guardrail")
     g.add_edge("budget_guardrail", "option_generator")
     g.add_edge("option_generator", END)
 
@@ -278,7 +305,7 @@ def build_graph() -> CompiledStateGraph:
 
     g.add_node("personalisation", personalisation_node)
     g.add_node("intent_parser", intent_parser_node)
-    g.add_node("research_fan_out", research_round_1)  # Use round_1 as fan_out
+    g.add_node("research_fan_out", research_round_1)
     g.add_node("budget_guardrail", budget_guardrail_node)
     g.add_node("retry_research", retry_research_node)
     g.add_node("itinerary_builder", itinerary_builder_node)
@@ -301,8 +328,8 @@ def build_graph() -> CompiledStateGraph:
 
 
 # Compiled graphs
-travel_graph: CompiledStateGraph = build_graph()  # Legacy
-collaborative_travel_graph: CompiledStateGraph = build_collaborative_graph()  # New default
+travel_graph: CompiledStateGraph = build_graph()
+collaborative_travel_graph: CompiledStateGraph = build_collaborative_graph()
 
 
 @traceable(name="voyager_travel_query")
@@ -314,20 +341,31 @@ async def run_travel_query(user_query: str, user_id: str = "anonymous") -> dict:
         "budget_retry_count": 0,
         "errors": {},
     }
-    final_state = await travel_graph.ainvoke(initial_state)
-    return final_state
+    return await travel_graph.ainvoke(initial_state)
 
 
 @traceable(name="voyager_collaborative_query")
 async def run_collaborative_travel_query(
     user_query: str,
     user_id: str = "anonymous",
-    session_id: str = None
+    session_id: str = None,
+    enable_refinement: bool = True,
 ) -> dict:
-    """Entry point: run collaborative multi-agent graph (generates 3 options)."""
+    """Entry point: run collaborative multi-agent graph (generates 3 options).
+
+    Args:
+        enable_refinement: When False, skips Rounds 2/3 entirely (baseline mode).
+            Used by the benchmark script to produce before/after comparisons.
+    """
     import uuid
+    from metrics.collector import record_session
+    from metrics.token_tracker import start_session, get_current, compute_cost
+    from config import get_api_config
+
     if session_id is None:
         session_id = str(uuid.uuid4())
+
+    token_usage = start_session()
 
     initial_state: TravelState = {
         "user_query": user_query,
@@ -340,6 +378,27 @@ async def run_collaborative_travel_query(
         "synergies": [],
         "errors": {},
         "refinement_history": [],
+        "run_metrics": {},
+        "enable_refinement": enable_refinement,
     }
+
+    t0 = time.perf_counter()
     final_state = await collaborative_travel_graph.ainvoke(initial_state)
+    duration = round(time.perf_counter() - t0, 2)
+
+    config = get_api_config()
+    usage = get_current()
+    estimated_cost = (
+        compute_cost(usage.input_tokens, usage.output_tokens, config.llm)
+        if usage else 0.0
+    )
+
+    record_session(
+        final_state,
+        query=user_query,
+        duration_s=duration,
+        mode="full" if enable_refinement else "baseline",
+        token_usage=usage,
+        estimated_cost_usd=estimated_cost,
+    )
     return final_state

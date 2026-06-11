@@ -110,6 +110,10 @@ class LLMConfig(BaseModel):
     itinerary_builder_model: str = Field(default="claude-sonnet-4-5-20250929")
     quick_tasks_model: str = Field(default="claude-haiku-4-20250514", description="For simple tasks")
 
+    # Pricing — verify current rates at https://www.anthropic.com/pricing
+    input_cost_per_mtok: float = Field(default=3.00, description="USD per million input tokens")
+    output_cost_per_mtok: float = Field(default=15.00, description="USD per million output tokens")
+
     @classmethod
     def from_env(cls) -> "LLMConfig":
         api_key = os.getenv("ANTHROPIC_API_KEY")

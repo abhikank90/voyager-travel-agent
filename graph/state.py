@@ -99,3 +99,9 @@ class TravelState(TypedDict, total=False):
     # Control
     status: str
     errors: dict[str, str]
+
+    # When False: skip Rounds 2/3 (baseline comparison mode for benchmarking)
+    enable_refinement: bool
+
+    # Instrumentation — populated during the run, written to metrics JSONL at end
+    run_metrics: dict[str, Any]

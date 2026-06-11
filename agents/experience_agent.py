@@ -7,6 +7,7 @@ from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
 from .base_agent import BaseAgent
+from metrics.token_tracker import TokenTrackingCallback
 
 
 DESTINATIONS_DB = Path(__file__).parent.parent / "data" / "knowledge_base" / "destinations.json"
@@ -28,7 +29,7 @@ class ExperienceAgent(BaseAgent):
     description = "Recommends experiences and activities using RAG over destination knowledge base"
 
     def _setup(self):
-        self.llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0.3)
+        self.llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0.3, callbacks=[TokenTrackingCallback()])
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a travel experiences expert. Return only valid JSON."),
             ("human", EXPERIENCE_PROMPT),
