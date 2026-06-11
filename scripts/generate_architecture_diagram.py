@@ -8,15 +8,15 @@ Requirements:
     # or: apt-get install graphviz  # Linux
 """
 
-from diagrams import Diagram, Cluster, Edge
+import os
+
+from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import ECS
-from diagrams.aws.network import ELB
 from diagrams.aws.database import Dynamodb
 from diagrams.aws.integration import SimpleQueueServiceSqs
+from diagrams.aws.network import ELB
 from diagrams.onprem.client import Users
 from diagrams.programming.framework import React
-from diagrams.custom import Custom
-import os
 
 # Set output directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -95,8 +95,8 @@ with Diagram(
 
     # External Services
     with Cluster("External APIs"):
-        from diagrams.saas.chat import Slack
         from diagrams.onprem.network import Internet
+        from diagrams.saas.chat import Slack
 
         claude_api = Slack("Anthropic\nClaude API\n(Sonnet 4.5 & Haiku)")
         amadeus_api = Internet("Amadeus\nFlight API")

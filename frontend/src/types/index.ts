@@ -186,7 +186,7 @@ export interface TripOption {
   trade_offs: string[]
 }
 
-export interface CollaborativeAgentUpdate extends AgentUpdate {
+export interface CollaborativeAgentUpdate extends Omit<AgentUpdate, 'type'> {
   type: 'agent_update' | 'collaboration' | 'options_ready' | 'status' | 'error'
   collaboration_messages?: CollaborationMessage[]
   trip_options?: TripOption[]

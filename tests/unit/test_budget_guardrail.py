@@ -1,4 +1,5 @@
 import pytest
+
 from agents.budget_guardrail import BudgetGuardrailAgent
 
 
@@ -9,10 +10,12 @@ def agent():
 
 @pytest.mark.asyncio
 async def test_within_budget(agent):
+    # Agent adds activity (10%), food (15%), misc (5%) on top of flight+hotel.
+    # With budget=2000: overhead = 2000*0.30 = 600, so flight+hotel must be ≤ 1400.
     state = {
         "intent": {"budget_usd": 2000},
-        "flight_cost_usd": 700,
-        "hotel_cost_usd": 800,
+        "flight_cost_usd": 600,
+        "hotel_cost_usd": 700,
         "budget_retry_count": 0,
     }
     result = await agent._execute(state)

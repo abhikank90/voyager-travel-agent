@@ -5,8 +5,8 @@ Run with:
     python -m langsmith.evaluators
 """
 from langsmith import Client
-from langsmith.evaluation import evaluate, LangChainStringEvaluator
-from langsmith.schemas import Run, Example
+from langsmith.evaluation import evaluate
+from langsmith.schemas import Example, Run
 
 client = Client()
 
@@ -17,7 +17,10 @@ def create_dataset():
     """Seed evaluation dataset — run once."""
     examples = [
         {
-            "inputs": {"user_query": "I want a vacation in Greece under $2000 with good beaches and local food around summer 2026"},
+            "inputs": {
+                "user_query": "I want a vacation in Greece under $2000"
+                " with good beaches and local food around summer 2026"
+            },
             "outputs": {
                 "destination": "Greece",
                 "budget_usd": 2000,

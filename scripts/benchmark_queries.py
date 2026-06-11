@@ -73,7 +73,7 @@ async def run_query(
     print(f"  [{idx+1}/{total}] [{mode_label}] {query[:65]}...")
     try:
         await run_collaborative_travel_query(query, enable_refinement=enable_refinement)
-        print(f"           ✓")
+        print("           ✓")
         return True
     except Exception as e:
         print(f"           ✗ {e}")

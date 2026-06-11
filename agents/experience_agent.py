@@ -1,14 +1,12 @@
-import os
 import json
 from pathlib import Path
-from typing import Optional
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
-from .base_agent import BaseAgent
 from metrics.token_tracker import TokenTrackingCallback
 
+from .base_agent import BaseAgent
 
 DESTINATIONS_DB = Path(__file__).parent.parent / "data" / "knowledge_base" / "destinations.json"
 
@@ -47,7 +45,7 @@ class ExperienceAgent(BaseAgent):
                 for dest in data.get("destinations", []):
                     self.knowledge_base[dest["name"].lower()] = dest
 
-    def _get_destination_context(self, destination: str) -> Optional[dict]:
+    def _get_destination_context(self, destination: str) -> dict | None:
         dest_lower = destination.lower()
         for key, val in self.knowledge_base.items():
             if key in dest_lower or dest_lower in key:
@@ -98,6 +96,8 @@ class ExperienceAgent(BaseAgent):
             json_match = re.search(r'\[.*\]', text, re.DOTALL)
             experiences = json.loads(json_match.group()) if json_match else []
         except Exception:
+            experiences = []
+        if not experiences:
             experiences = self._fallback_experiences(destination, interests)
 
         if context:
@@ -116,7 +116,22 @@ class ExperienceAgent(BaseAgent):
 
     def _fallback_experiences(self, destination: str, interests: list) -> list:
         return [
-            {"name": f"Beach Day at {destination}", "description": "Relax on beautiful beaches", "cost_usd": 0, "category": "beach", "best_time_of_day": "morning", "location": "South Beach Area"},
-            {"name": "Local Food Tour", "description": "Sample authentic local cuisine", "cost_usd": 50, "category": "food", "best_time_of_day": "evening", "location": "Old Town"},
-            {"name": "Historical Sites Visit", "description": "Explore ancient ruins and monuments", "cost_usd": 25, "category": "culture", "best_time_of_day": "morning", "location": "City Center"},
+            {
+                "name": f"Beach Day at {destination}",
+                "description": "Relax on beautiful beaches",
+                "cost_usd": 0, "category": "beach",
+                "best_time_of_day": "morning", "location": "South Beach Area",
+            },
+            {
+                "name": "Local Food Tour",
+                "description": "Sample authentic local cuisine",
+                "cost_usd": 50, "category": "food",
+                "best_time_of_day": "evening", "location": "Old Town",
+            },
+            {
+                "name": "Historical Sites Visit",
+                "description": "Explore ancient ruins and monuments",
+                "cost_usd": 25, "category": "culture",
+                "best_time_of_day": "morning", "location": "City Center",
+            },
         ]

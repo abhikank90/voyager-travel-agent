@@ -4,9 +4,9 @@ Centralized config makes it easy to update API endpoints and keys.
 """
 
 import os
-from typing import Optional
-from pydantic import BaseModel, Field
+
 from dotenv import load_dotenv
+from pydantic import BaseModel, Field
 
 # Load environment variables from .env file
 load_dotenv()
@@ -15,8 +15,8 @@ load_dotenv()
 class FlightAPIConfig(BaseModel):
     """Configuration for flight search APIs."""
     provider: str = Field(default="amadeus", description="API provider: amadeus, skyscanner, etc.")
-    api_key: Optional[str] = Field(default=None)
-    api_secret: Optional[str] = Field(default=None)
+    api_key: str | None = Field(default=None)
+    api_secret: str | None = Field(default=None)
     base_url: str = Field(default="https://test.api.amadeus.com/v2")
     booking_url_template: str = Field(
         default="https://www.google.com/travel/flights?q={origin}+to+{destination}+{date}",
@@ -36,7 +36,7 @@ class FlightAPIConfig(BaseModel):
 class HotelAPIConfig(BaseModel):
     """Configuration for hotel search APIs."""
     provider: str = Field(default="booking", description="API provider: booking, expedia, etc.")
-    api_key: Optional[str] = Field(default=None)
+    api_key: str | None = Field(default=None)
     base_url: str = Field(default="https://booking-com.p.rapidapi.com/v1")
     booking_url_template: str = Field(
         default="https://www.booking.com/searchresults.html?ss={destination}&checkin={checkin}&checkout={checkout}",
@@ -55,7 +55,7 @@ class HotelAPIConfig(BaseModel):
 class WeatherAPIConfig(BaseModel):
     """Configuration for weather APIs."""
     provider: str = Field(default="openweather", description="API provider: openweather, weatherapi, etc.")
-    api_key: Optional[str] = Field(default=None)
+    api_key: str | None = Field(default=None)
     base_url: str = Field(default="https://api.openweathermap.org/data/3.0")
     use_mock: bool = Field(default=False)
 
@@ -70,7 +70,7 @@ class WeatherAPIConfig(BaseModel):
 class ExperienceAPIConfig(BaseModel):
     """Configuration for experience/activity APIs."""
     provider: str = Field(default="viator", description="API provider: viator, getyourguide, etc.")
-    api_key: Optional[str] = Field(default=None)
+    api_key: str | None = Field(default=None)
     base_url: str = Field(default="https://viatorapi.viator.com/service")
     booking_url_template: str = Field(
         default="https://www.getyourguide.com/s/?q={destination}",
@@ -156,7 +156,7 @@ class APIConfiguration(BaseModel):
 
 
 # Singleton instance
-_config: Optional[APIConfiguration] = None
+_config: APIConfiguration | None = None
 
 
 def get_api_config() -> APIConfiguration:

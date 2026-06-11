@@ -5,18 +5,19 @@ Top row: User Layer | AWS Cloud | External
 Bottom row: Research Agents (large) | Coordination
 """
 
-from diagrams import Diagram, Cluster, Edge, Node
+import os
+
+from diagrams import Cluster, Diagram, Edge
 from diagrams.aws.compute import ECS
-from diagrams.aws.network import ELB
 from diagrams.aws.database import Dynamodb
 from diagrams.aws.integration import SimpleQueueServiceSqs
+from diagrams.aws.network import ELB
+from diagrams.onprem.aggregator import Fluentd
 from diagrams.onprem.client import Users
 from diagrams.onprem.compute import Server
-from diagrams.onprem.aggregator import Fluentd
+from diagrams.onprem.network import Internet
 from diagrams.programming.framework import React
 from diagrams.saas.chat import Slack
-from diagrams.onprem.network import Internet
-import os
 
 # Set output directory
 script_dir = os.path.dirname(os.path.abspath(__file__))

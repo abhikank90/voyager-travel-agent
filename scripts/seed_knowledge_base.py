@@ -15,9 +15,9 @@ ROOT = Path(__file__).parent.parent
 
 def main():
     try:
-        from qdrant_client import QdrantClient
-        from qdrant_client.models import Distance, VectorParams, PointStruct
         from langchain_anthropic import ChatAnthropic
+        from qdrant_client import QdrantClient
+        from qdrant_client.models import Distance, PointStruct, VectorParams
     except ImportError:
         print("Install qdrant-client: pip install qdrant-client")
         sys.exit(1)
@@ -44,7 +44,10 @@ def main():
     points = []
 
     for i, dest in enumerate(data["destinations"]):
-        text = f"{dest['name']} — {', '.join(dest['popular_interests'])}. Beaches: {', '.join(dest['top_beaches'][:3])}. Restaurants: {', '.join(dest['top_restaurants'][:3])}."
+        interests = ', '.join(dest['popular_interests'])
+        beaches = ', '.join(dest['top_beaches'][:3])
+        restaurants = ', '.join(dest['top_restaurants'][:3])
+        text = f"{dest['name']} — {interests}. Beaches: {beaches}. Restaurants: {restaurants}."
         embedding = llm.embed_query(text) if hasattr(llm, "embed_query") else [0.0] * 1536
         points.append(PointStruct(id=i, vector=embedding, payload=dest))
 

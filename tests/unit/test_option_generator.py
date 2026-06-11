@@ -3,10 +3,12 @@ Unit tests for OptionGeneratorAgent.
 Tests 3 option generation (budget/balanced/premium), booking URLs, and trade-off analysis.
 """
 
+import json
+from unittest.mock import MagicMock, patch
+
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+
 from agents.option_generator import OptionGeneratorAgent
-from graph.state import TravelState
 
 
 @pytest.fixture
@@ -130,9 +132,6 @@ def complete_state():
             "safety_level": 1
         }
     }
-
-
-import json
 
 
 @pytest.mark.asyncio

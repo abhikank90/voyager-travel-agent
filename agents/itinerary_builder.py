@@ -1,9 +1,9 @@
 import json
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
 from .base_agent import BaseAgent
-
 
 ITINERARY_PROMPT = """You are a master travel planner. Build a complete, realistic day-by-day itinerary.
 
@@ -24,7 +24,8 @@ Trip details:
 Create a detailed JSON itinerary with:
 - "summary": 2-3 sentence trip overview
 - "highlights": list of 5 trip highlights
-- "days": array of day objects, each with: day_number, date, theme, morning, afternoon, evening, meals, estimated_cost_usd, tips
+- "days": array of day objects, each with: day_number, date, theme,
+  morning, afternoon, evening, meals, estimated_cost_usd, tips
 - "packing_list": essential items for this specific trip
 - "booking_checklist": what to book in advance
 - "local_phrases": 5 useful local phrases with pronunciation

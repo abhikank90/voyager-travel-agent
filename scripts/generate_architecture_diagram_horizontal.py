@@ -7,16 +7,16 @@ Requirements:
     brew install graphviz  # macOS
 """
 
-from diagrams import Diagram, Cluster, Edge
-from diagrams.aws.compute import ECS, Lambda
-from diagrams.aws.network import ELB
+import os
+
+from diagrams import Cluster, Diagram, Edge
+from diagrams.aws.compute import ECS
 from diagrams.aws.database import Dynamodb
 from diagrams.aws.integration import SimpleQueueServiceSqs
+from diagrams.aws.network import ELB
 from diagrams.onprem.client import Users
+from diagrams.programming.flowchart import PredefinedProcess
 from diagrams.programming.framework import React
-from diagrams.programming.flowchart import PredefinedProcess, Database
-from diagrams.programming.language import Python
-import os
 
 # Set output directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -84,8 +84,8 @@ with Diagram(
 
     # Column 4: External Services
     with Cluster("External APIs"):
-        from diagrams.saas.chat import Slack
         from diagrams.onprem.network import Internet
+        from diagrams.saas.chat import Slack
 
         claude = Slack("Claude API\n(Anthropic)")
         amadeus = Internet("Amadeus\n(Flights)")

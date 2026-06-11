@@ -6,10 +6,11 @@ combinations, each with booking URLs and trade-off analysis.
 """
 
 import json
-from typing import Any
+
 from anthropic import Anthropic
-from config import get_api_config
+
 from agents.base_agent import BaseAgent
+from config import get_api_config
 from graph.state import TravelState, TripOption
 from metrics.token_tracker import track_usage
 
@@ -34,9 +35,9 @@ class OptionGeneratorAgent(BaseAgent):
 
         flights = state.get("flights", [])
         hotels = state.get("hotels", [])
-        experiences = state.get("experiences", [])
-        weather = state.get("weather", {})
-        visa_safety = state.get("visa_safety", {})
+        state.get("experiences", [])
+        state.get("weather", {})
+        state.get("visa_safety", {})
 
         if not flights or not hotels:
             return self._error_state("Insufficient research data to generate options")
@@ -258,7 +259,8 @@ class OptionGeneratorAgent(BaseAgent):
         intent = state.get("intent", {})
         weather = state.get("weather", {})
 
-        prompt = f"""Create a detailed {num_days}-day itinerary for a {style} trip to {intent.get('destination', 'Unknown')}.
+        dest = intent.get('destination', 'Unknown')
+        prompt = f"""Create a detailed {num_days}-day itinerary for a {style} trip to {dest}.
 
 **Trip Details:**
 - Style: {style}
@@ -389,11 +391,20 @@ Return ONLY a JSON array of day objects with this structure:
     def _generate_description(self, style: str, priorities: list[str]) -> str:
         """Generate option description."""
         if style == "budget":
-            return "Save money without sacrificing the experience. Perfect for travelers who value authentic local experiences over luxury."
+            return (
+                "Save money without sacrificing the experience."
+                " Perfect for travelers who value authentic local experiences over luxury."
+            )
         elif style == "balanced":
-            return "The sweet spot between comfort and value. Enjoy quality accommodations, diverse experiences, and good food."
+            return (
+                "The sweet spot between comfort and value."
+                " Enjoy quality accommodations, diverse experiences, and good food."
+            )
         else:
-            return "Indulge in the best the destination has to offer. Premium flights, luxury hotels, and exclusive experiences."
+            return (
+                "Indulge in the best the destination has to offer."
+                " Premium flights, luxury hotels, and exclusive experiences."
+            )
 
     def _generate_highlights_and_tradeoffs(
         self,

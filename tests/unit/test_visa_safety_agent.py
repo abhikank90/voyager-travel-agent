@@ -1,231 +1,128 @@
+"""Unit tests for VisaSafetyAgent.
+
+The actual agent uses DuckDuckGoSearchRun (via self.search) and builds
+the LLM chain inline in _execute as `self.prompt | self.llm`. These tests
+mock both so no real API calls are made.
 """
-Unit tests for VisaSafetyAgent.
-Tests visa requirements and safety information retrieval using DuckDuckGo + Claude.
-"""
+
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+
 from agents.visa_safety_agent import VisaSafetyAgent
 
-
-@pytest.fixture
-def agent():
-    """Create VisaSafetyAgent with mocked dependencies."""
-    with patch("agents.visa_safety_agent.ChatAnthropic") as mock_claude:
-        with patch("agents.visa_safety_agent.DDGS") as mock_ddg:
-            # Mock DuckDuckGo search results
-            mock_ddg_instance = MagicMock()
-            mock_ddg_instance.text.return_value = [
-                {
-                    "title": "Greece Visa Requirements",
-                    "body": "US citizens do not need a visa for stays up to 90 days",
-                    "href": "https://example.com"
-                }
-            ]
-            mock_ddg.return_value.__enter__.return_value = mock_ddg_instance
-
-            # Mock Claude summarization
-            mock_chain = MagicMock()
-            mock_response = MagicMock()
-            mock_response.content = "No visa required for US citizens. Greece is very safe for travelers."
-            mock_chain.invoke = MagicMock(return_value=mock_response)
-
-            agent = VisaSafetyAgent()
-            agent.chain = mock_chain
-            return agent
+VALID_VISA_JSON = json.dumps({
+    "visa_required": False,
+    "visa_type": "Schengen — 90 days visa-free",
+    "visa_on_arrival": False,
+    "safety_level": 1,
+    "safety_summary": "Greece is very safe for tourists.",
+    "tips": ["Keep passport copies"],
+    "emergency_contacts": {"police": "100", "ambulance": "166"},
+    "health_requirements": ["Travel insurance recommended"],
+})
 
 
-@pytest.mark.asyncio
-async def test_visa_info_returned(agent):
-    """Test that visa information is returned."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "origin_country": "USA"
-        }
-    }
-
-    result = await agent._execute(state)
-
-    assert "visa_info" in result or "visa_safety" in result
-
-
-@pytest.mark.asyncio
-async def test_visa_required_field_exists(agent):
-    """Test that visa_required boolean is included."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "origin_country": "USA"
-        }
-    }
-
-    result = await agent._execute(state)
-
-    visa_info = result.get("visa_info") or result.get("visa_safety")
-    assert "visa_required" in visa_info
-    assert isinstance(visa_info["visa_required"], bool)
-
-
-@pytest.mark.asyncio
-async def test_safety_level_included(agent):
-    """Test that safety level is included."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "origin_country": "USA"
-        }
-    }
-
-    result = await agent._execute(state)
-
-    visa_info = result.get("visa_info") or result.get("visa_safety")
-    assert "safety_level" in visa_info or "safety_rating" in visa_info
-
-
-@pytest.mark.asyncio
-async def test_duckduckgo_search_performed(agent):
-    """Test that DuckDuckGo search is performed."""
-    with patch("agents.visa_safety_agent.DDGS") as mock_ddg:
-        mock_ddg_instance = MagicMock()
-        mock_ddg_instance.text.return_value = [
-            {"title": "Test", "body": "Test result", "href": "http://example.com"}
-        ]
-        mock_ddg.return_value.__enter__.return_value = mock_ddg_instance
-
-        state = {
-            "intent": {
-                "destination": "Greece",
-                "origin_country": "USA"
-            }
-        }
-
-        result = await agent._execute(state)
-
-        # Search should have been called
-        mock_ddg_instance.text.assert_called()
-
-
-@pytest.mark.asyncio
-async def test_claude_summarization_called(agent):
-    """Test that Claude is used to summarize search results."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "origin_country": "USA"
-        }
-    }
-
-    result = await agent._execute(state)
-
-    # Claude chain should have been invoked
-    agent.chain.invoke.assert_called()
-
-
-@pytest.mark.asyncio
-async def test_handles_missing_origin_country():
-    """Test that agent uses default (USA) when origin country is missing."""
-    with patch("agents.visa_safety_agent.ChatAnthropic"):
-        with patch("agents.visa_safety_agent.DDGS") as mock_ddg:
-            mock_ddg_instance = MagicMock()
-            mock_ddg_instance.text.return_value = []
-            mock_ddg.return_value.__enter__.return_value = mock_ddg_instance
-
-            agent = VisaSafetyAgent()
-
-            state = {
-                "intent": {
-                    "destination": "Greece"
-                }
-            }
-
-            result = await agent._execute(state)
-
-            # Should still work with default country
-            assert "visa_info" in result or "visa_safety" in result
-
-
-@pytest.mark.asyncio
-async def test_handles_search_failure_gracefully(agent):
-    """Test that agent handles DuckDuckGo failures gracefully."""
-    with patch("agents.visa_safety_agent.DDGS") as mock_ddg:
-        mock_ddg.side_effect = Exception("Search failed")
-
-        state = {
-            "intent": {
-                "destination": "Greece"
-            }
-        }
-
-        result = await agent._execute(state)
-
-        # Should return fallback data instead of crashing
-        assert "visa_info" in result or "visa_safety" in result or "errors" in result
-
-
-@pytest.mark.asyncio
-async def test_visa_info_has_notes(agent):
-    """Test that visa info includes helpful notes."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "origin_country": "USA"
-        }
-    }
-
-    result = await agent._execute(state)
-
-    visa_info = result.get("visa_info") or result.get("visa_safety")
-    # Should have notes or summary
-    assert "notes" in visa_info or "summary" in visa_info or "details" in visa_info
-
-
-@pytest.mark.asyncio
-async def test_different_destinations_different_requirements():
-    """Test that visa requirements differ by destination."""
-    with patch("agents.visa_safety_agent.ChatAnthropic"):
-        with patch("agents.visa_safety_agent.DDGS") as mock_ddg:
-            mock_ddg_instance = MagicMock()
-            mock_ddg_instance.text.return_value = [
-                {"title": "Test", "body": "Visa required", "href": "http://example.com"}
-            ]
-            mock_ddg.return_value.__enter__.return_value = mock_ddg_instance
-
-            agent = VisaSafetyAgent()
-
-            # Mock chain for different response
-            mock_chain = MagicMock()
-            mock_response = MagicMock()
-            mock_response.content = "Visa required for this destination."
-            mock_chain.invoke = MagicMock(return_value=mock_response)
-            agent.chain = mock_chain
-
-            state = {
-                "intent": {
-                    "destination": "China",  # Different country
-                    "origin_country": "USA"
-                }
-            }
-
-            result = await agent._execute(state)
-
-            # Should call search with different destination
-            mock_ddg_instance.text.assert_called()
-            call_args = str(mock_ddg_instance.text.call_args)
-            assert "China" in call_args or "china" in call_args.lower()
-
-
-@pytest.mark.asyncio
-async def test_error_when_missing_destination():
-    """Test error handling when destination is missing."""
-    with patch("agents.visa_safety_agent.ChatAnthropic"):
+def _make_agent(llm_response: str = VALID_VISA_JSON, search_raises: bool = False):
+    """Build a VisaSafetyAgent with all external deps mocked out."""
+    with patch("agents.visa_safety_agent.ChatAnthropic"), \
+         patch("agents.visa_safety_agent.DuckDuckGoSearchRun") as mock_search_cls:
+        if search_raises:
+            mock_search_cls.side_effect = Exception("Search unavailable")
+        else:
+            mock_search = MagicMock()
+            mock_search.run.return_value = "Greece is Schengen. No visa for US citizens."
+            mock_search_cls.return_value = mock_search
         agent = VisaSafetyAgent()
 
-        state = {
-            "intent": {}
-        }
+    # Replace prompt so `self.prompt | self.llm` → mock_chain
+    mock_response = MagicMock()
+    mock_response.content = llm_response
+    mock_chain = AsyncMock()
+    mock_chain.ainvoke = AsyncMock(return_value=mock_response)
+    mock_prompt = MagicMock()
+    mock_prompt.__or__ = MagicMock(return_value=mock_chain)
+    agent.prompt = mock_prompt
+    agent._test_chain = mock_chain
+    return agent
 
-        result = await agent._execute(state)
 
-        # Should handle gracefully
-        assert "errors" in result or "visa_info" in result or "visa_safety" in result
+INTENT_GREECE = {"destination": "Greece", "origin_country": "USA"}
+
+
+# ── Output contract ───────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_returns_visa_safety_key():
+    agent = _make_agent()
+    result = await agent._execute({"intent": INTENT_GREECE})
+    assert "visa_safety" in result
+
+
+@pytest.mark.asyncio
+async def test_visa_required_field_is_bool():
+    agent = _make_agent()
+    result = await agent._execute({"intent": INTENT_GREECE})
+    info = result["visa_safety"]
+    assert "visa_required" in info
+    assert isinstance(info["visa_required"], bool)
+
+
+@pytest.mark.asyncio
+async def test_safety_level_present():
+    agent = _make_agent()
+    result = await agent._execute({"intent": INTENT_GREECE})
+    info = result["visa_safety"]
+    assert "safety_level" in info
+
+
+@pytest.mark.asyncio
+async def test_llm_chain_is_called():
+    agent = _make_agent()
+    await agent._execute({"intent": INTENT_GREECE})
+    agent._test_chain.ainvoke.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_destination_passed_to_chain():
+    agent = _make_agent()
+    await agent._execute({"intent": INTENT_GREECE})
+    call_kwargs = agent._test_chain.ainvoke.call_args[0][0]
+    assert call_kwargs["destination"] == "Greece"
+
+
+# ── Edge cases ────────────────────────────────────────────────────────────────
+
+@pytest.mark.asyncio
+async def test_missing_origin_country_still_works():
+    """Agent should not crash when origin_country is absent."""
+    agent = _make_agent()
+    result = await agent._execute({"intent": {"destination": "Greece"}})
+    assert "visa_safety" in result
+
+
+@pytest.mark.asyncio
+async def test_invalid_llm_json_falls_back():
+    """When Claude returns unparseable JSON, _fallback is used."""
+    agent = _make_agent(llm_response="not valid json at all")
+    result = await agent._execute({"intent": INTENT_GREECE})
+    assert "visa_safety" in result
+    # Fallback for Greece always returns visa_required=False
+    assert result["visa_safety"].get("visa_required") is False
+
+
+@pytest.mark.asyncio
+async def test_search_failure_uses_fallback():
+    """DuckDuckGoSearchRun failure (at construction) is caught — agent uses self.search=None."""
+    agent = _make_agent(search_raises=True)
+    result = await agent._execute({"intent": INTENT_GREECE})
+    assert "visa_safety" in result
+
+
+@pytest.mark.asyncio
+async def test_missing_destination_returns_gracefully():
+    """Empty destination should not raise; may return errors or empty visa_safety."""
+    agent = _make_agent()
+    result = await agent._execute({"intent": {}})
+    assert "visa_safety" in result or "errors" in result

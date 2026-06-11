@@ -1,4 +1,5 @@
-from typing import Any, Optional, Literal
+from typing import Any, Literal
+
 from typing_extensions import TypedDict
 
 
@@ -30,8 +31,8 @@ class TripOption(TypedDict, total=False):
     day_by_day: list[dict]
 
     # Booking links
-    flight_booking_url: Optional[str]
-    hotel_booking_url: Optional[str]
+    flight_booking_url: str | None
+    hotel_booking_url: str | None
     experience_booking_urls: list[str]
 
     # Highlights
@@ -61,17 +62,17 @@ class TravelState(TypedDict, total=False):
 
     # Research results (populated in parallel, refined over rounds)
     flights: list[dict]
-    selected_flight: Optional[dict]
+    selected_flight: dict | None
     flight_cost_usd: float
 
     hotels: list[dict]
-    selected_hotel: Optional[dict]
+    selected_hotel: dict | None
     hotel_cost_usd: float
 
     experiences: list[dict]
     top_beaches: list[str]
     top_restaurants: list[str]
-    destination_context: Optional[dict]
+    destination_context: dict | None
 
     weather: dict[str, Any]
     travel_month: str
@@ -83,14 +84,14 @@ class TravelState(TypedDict, total=False):
     budget_ok: bool
     budget_retry_count: int
     budget_loop_back: bool
-    tighter_budget: Optional[float]
+    tighter_budget: float | None
 
     # Multi-option output
     trip_options: list[TripOption]  # 3 variants: budget, balanced, premium
-    selected_option_id: Optional[int]  # User's choice (0, 1, or 2)
+    selected_option_id: int | None  # User's choice (0, 1, or 2)
 
     # Refinement tracking
-    refinement_request: Optional[str]  # User's follow-up request
+    refinement_request: str | None  # User's follow-up request
     refinement_history: list[dict]  # Track all refinements
 
     # Legacy single itinerary (for backwards compatibility)

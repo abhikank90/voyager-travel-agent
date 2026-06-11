@@ -7,60 +7,76 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import { TripOptionCard } from '../TripOptionCard'
 import { TripOption } from '../../types'
 
+const mockItinerary = {
+  num_days: 7,
+  destination: 'Greece',
+  style: 'budget' as const,
+  total_cost: 1500,
+  breakdown: { flight: 450, hotel: 420, experiences: 200, food: 280, misc: 150 },
+}
+
 const mockBudgetOption: TripOption = {
   option_id: 0,
   style: 'budget',
   title: 'Budget Explorer - Greece',
+  description: 'Affordable trip to Greece',
   total_cost_usd: 1500,
   flight: {
     airline: 'Budget Air',
-    price: 450,
+    price_usd: 450,
     stops: 2,
     duration: '18h',
-    departure_time: '22:00',
-    arrival_time: '04:00'
+    departure: '2026-07-01T22:00:00',
+    arrival: '2026-07-02T04:00:00',
   },
   hotel: {
     name: 'Budget Inn',
-    price_per_night: 60,
+    price_per_night_usd: 60,
+    total_usd: 420,
     rating: 3.5,
     location: 'Athens',
-    amenities: ['WiFi']
+    amenities: ['WiFi'],
   },
   experiences: [],
+  itinerary: mockItinerary,
   day_by_day: [],
   flight_booking_url: 'https://google.com/flights',
   hotel_booking_url: 'https://booking.com',
+  experience_booking_urls: [],
   highlights: ['Save $500', 'Local experiences'],
-  trade_offs: ['2 stop flight', 'Basic hotel']
+  trade_offs: ['2 stop flight', 'Basic hotel'],
 }
 
 const mockPremiumOption: TripOption = {
   option_id: 2,
   style: 'premium',
   title: 'Premium Luxury - Greece',
+  description: 'Luxury escape to Greece',
   total_cost_usd: 2300,
   flight: {
     airline: 'Delta',
-    price: 850,
+    price_usd: 850,
     stops: 0,
     duration: '10h 30m',
-    departure_time: '08:00',
-    arrival_time: '10:00'
+    departure: '2026-07-01T08:00:00',
+    arrival: '2026-07-01T22:30:00',
   },
   hotel: {
     name: 'Luxury Resort',
-    price_per_night: 250,
+    price_per_night_usd: 250,
+    total_usd: 1750,
     rating: 4.9,
     location: 'Santorini',
-    amenities: ['Beach Access', 'Spa', 'Pool']
+    amenities: ['Beach Access', 'Spa', 'Pool'],
   },
   experiences: [],
+  itinerary: { ...mockItinerary, style: 'premium', total_cost: 2300 },
   day_by_day: [],
   flight_booking_url: 'https://google.com/flights',
   hotel_booking_url: 'https://booking.com',
+  experience_booking_urls: [],
   highlights: ['Direct flight', 'Luxury resort', 'Exclusive tours'],
-  trade_offs: ['$300 over budget']
+  trade_offs: ['$300 over budget'],
 }
 
 describe('TripOptionCard', () => {
@@ -206,7 +222,6 @@ describe('TripOptionCard', () => {
       />
     )
 
-    // Check for budget-specific styling class
     const card = container.firstChild
     expect(card).toHaveClass(/green/i)
   })
@@ -223,7 +238,6 @@ describe('TripOptionCard', () => {
       />
     )
 
-    // Check for premium-specific styling class
     const card = container.firstChild
     expect(card).toHaveClass(/purple/i)
   })
@@ -241,7 +255,6 @@ describe('TripOptionCard', () => {
       />
     )
 
-    // Should have selected state styling
     const card = container.firstChild
     expect(card).toHaveClass(/selected|ring|border/)
   })

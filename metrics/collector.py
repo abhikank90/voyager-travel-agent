@@ -17,7 +17,7 @@ call print_summary() to produce the before/after table for the article.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -83,7 +83,7 @@ def record_session(
     record = {
         "session_id": final_state.get("session_id", ""),
         "query": query,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(UTC).isoformat(),
         "duration_s": duration_s,
         "mode": mode,
 
@@ -176,14 +176,22 @@ def print_summary() -> None:
         with_conflict = [s for s in sessions if s["had_conflict"]]
         r2 = [s for s in sessions if s["round_2_triggered"]]
         r3 = [s for s in sessions if s["round_3_triggered"]]
-        savings = [s["selective_rerun_savings_pct"] for s in sessions if s["round_2_triggered"] or s["round_3_triggered"]]
-        resolution_rates = [s["conflict_resolution_rate_pct"] for s in sessions if s.get("conflict_resolution_rate_pct") is not None]
+        savings = [
+            s["selective_rerun_savings_pct"]
+            for s in sessions
+            if s["round_2_triggered"] or s["round_3_triggered"]
+        ]
+        resolution_rates = [
+            s["conflict_resolution_rate_pct"]
+            for s in sessions
+            if s.get("conflict_resolution_rate_pct") is not None
+        ]
 
         print(f"\n  {'─'*54}")
         print(f"  {label.upper()} MODE  ({n} sessions)")
         print(f"  {'─'*54}")
 
-        print(f"\n  CONFLICT RATE")
+        print("\n  CONFLICT RATE")
         print(f"  Queries with ≥1 Round-1 conflict  {len(with_conflict):>3}/{n}  ({_pct(len(with_conflict), n)}%)")
         print(f"  Queries triggering Round 2         {len(r2):>3}/{n}  ({_pct(len(r2), n)}%)")
         print(f"  Queries triggering Round 3         {len(r3):>3}/{n}  ({_pct(len(r3), n)}%)")
@@ -191,31 +199,31 @@ def print_summary() -> None:
         print(f"  Avg Round-1 conflicts per query    {avg_r1}")
 
         if resolution_rates:
-            print(f"\n  CONFLICT RESOLUTION  (full mode only)")
+            print("\n  CONFLICT RESOLUTION  (full mode only)")
             print(f"  Overall resolution rate            {_avg(resolution_rates, 0):.0f}%")
             type_r1: dict[str, int] = {}
             for s in sessions:
                 for ct in s.get("round_1_conflict_types", []):
                     type_r1[ct] = type_r1.get(ct, 0) + 1
             if type_r1:
-                print(f"  Conflict types detected:")
+                print("  Conflict types detected:")
                 for ctype, count in sorted(type_r1.items(), key=lambda x: -x[1]):
                     print(f"    {ctype:<38} {count:>3}  ({_pct(count, n)}% of queries)")
 
         if savings:
-            print(f"\n  SELECTIVE RE-EXECUTION EFFICIENCY")
+            print("\n  SELECTIVE RE-EXECUTION EFFICIENCY")
             print(f"  Avg agent-call savings vs full re-run  {_avg(savings, 0):.0f}%")
             print(f"  (sessions with Round 2/3, n={len(savings)})")
 
         avg_final = _avg([s["final_conflict_count"] for s in sessions])
         avg_r1_count = _avg([s["round_1_conflict_count"] for s in sessions])
-        print(f"\n  CONFLICT COUNTS")
+        print("\n  CONFLICT COUNTS")
         print(f"  Avg Round-1 conflicts/query   {avg_r1_count}")
         print(f"  Avg final conflicts/query     {avg_final}")
 
         costs = [s["estimated_cost_usd"] for s in sessions if s.get("estimated_cost_usd")]
         if costs:
-            print(f"\n  TOKEN USAGE")
+            print("\n  TOKEN USAGE")
             avg_in = _avg([s.get("input_tokens", 0) for s in sessions], 0)
             avg_out = _avg([s.get("output_tokens", 0) for s in sessions], 0)
             print(f"  Avg input tokens/query    {avg_in:>7,.0f}")
@@ -223,11 +231,19 @@ def print_summary() -> None:
             print(f"  Avg cost/query            ${_avg(costs, 4):.4f}")
 
         durations = [s["duration_s"] for s in sessions]
-        print(f"\n  LATENCY")
+        print("\n  LATENCY")
         print(f"  Avg end-to-end duration   {_avg(durations)}s")
-        r1_dur = [s["round_durations"].get("round_1_duration_s") for s in sessions if s.get("round_durations", {}).get("round_1_duration_s")]
-        r2_dur = [s["round_durations"].get("round_2_duration_s") for s in sessions if s.get("round_durations", {}).get("round_2_duration_s")]
-        r3_dur = [s["round_durations"].get("round_3_duration_s") for s in sessions if s.get("round_durations", {}).get("round_3_duration_s")]
+
+        def _round_dur(key: str) -> list:
+            return [
+                s["round_durations"].get(key)
+                for s in sessions
+                if s.get("round_durations", {}).get(key)
+            ]
+
+        r1_dur = _round_dur("round_1_duration_s")
+        r2_dur = _round_dur("round_2_duration_s")
+        r3_dur = _round_dur("round_3_duration_s")
         if r1_dur:
             print(f"  Avg Round-1 duration      {_avg(r1_dur)}s  (bounded by slowest agent)")
         if r2_dur:
@@ -245,7 +261,7 @@ def print_summary() -> None:
     # ── Before/after comparison table ────────────────────────────────────
     if full and baseline:
         print(f"\n  {'─'*54}")
-        print(f"  BEFORE / AFTER  COLLABORATION HUB")
+        print("  BEFORE / AFTER  COLLABORATION HUB")
         print(f"  {'─'*54}")
         print(f"  {'Metric':<36} {'Baseline':>10} {'Full':>10}")
         print(f"  {'-'*56}")

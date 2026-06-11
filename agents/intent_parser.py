@@ -1,28 +1,29 @@
-from typing import Optional
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
-import json
+
+from metrics.token_tracker import TokenTrackingCallback
 
 from .base_agent import BaseAgent
-from metrics.token_tracker import TokenTrackingCallback
 
 
 class TravelIntent(BaseModel):
     destination: str = Field(description="Primary travel destination or region")
-    origin: Optional[str] = Field(None, description="Departure city/airport")
+    origin: str | None = Field(None, description="Departure city/airport")
     budget_usd: float = Field(description="Total budget in USD")
-    duration_days: Optional[int] = Field(None, description="Trip duration in days")
-    travel_month: Optional[str] = Field(None, description="Preferred travel month")
-    travel_year: Optional[int] = Field(None, description="Preferred travel year")
+    duration_days: int | None = Field(None, description="Trip duration in days")
+    travel_month: str | None = Field(None, description="Preferred travel month")
+    travel_year: int | None = Field(None, description="Preferred travel year")
     interests: list[str] = Field(default_factory=list, description="Traveller interests e.g. beaches, food, history")
     group_size: int = Field(default=1, description="Number of travellers")
-    accommodation_preference: Optional[str] = Field(None, description="hotel, hostel, airbnb, resort")
+    accommodation_preference: str | None = Field(None, description="hotel, hostel, airbnb, resort")
     flexibility: str = Field(default="moderate", description="low | moderate | high — how flexible dates/budget are")
     raw_query: str = Field(description="Original user query verbatim")
 
 
-SYSTEM_PROMPT = """You are an expert travel intent parser. Extract structured travel requirements from the user's message.
+SYSTEM_PROMPT = """You are an expert travel intent parser.
+Extract structured travel requirements from the user's message.
 Be precise with budget — if they say "under $2000" set budget_usd to 2000.
 If month is mentioned without a year, use the next occurrence. Today's date context will be provided.
 For interests, extract specific terms: beaches, local food, history, nightlife, hiking, culture, etc.

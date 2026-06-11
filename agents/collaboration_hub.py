@@ -7,10 +7,12 @@ and sends targeted messages to agents for refinement in subsequent rounds.
 
 from datetime import datetime
 from typing import Any
+
 from anthropic import Anthropic
-from config import get_api_config
+
 from agents.base_agent import BaseAgent
-from graph.state import TravelState, CollaborationMessage
+from config import get_api_config
+from graph.state import CollaborationMessage, TravelState
 from metrics.token_tracker import track_usage
 
 
@@ -104,9 +106,9 @@ class CollaborationHubAgent(BaseAgent):
         weather = state.get("weather", {})
         visa_safety = state.get("visa_safety", {})
 
-        return f"""You are coordinating a multi-agent travel planning system. Analyze the findings from all agents and identify:
-1. **Conflicts** - Issues where agent findings don't align well (e.g., hotel far from activities, flight times waste days)
-2. **Synergies** - Opportunities to enhance the trip (e.g., hotel near best beaches, weather perfect for outdoor activities)
+        return f"""You are coordinating a multi-agent travel planning system. Analyze findings and identify:
+1. **Conflicts** - Where agent findings don't align (e.g., hotel far from activities, timing issues)
+2. **Synergies** - Opportunities to enhance the trip (e.g., hotel near best beaches, perfect weather)
 3. **Optimization opportunities** - Ways agents could collaborate better
 
 **User Intent:**
@@ -149,7 +151,10 @@ Provide a concise analysis highlighting:
             return "No hotels found yet"
         result = []
         for h in hotels:
-            result.append(f"- {h.get('name', 'Unknown')} ${h.get('price_per_night', 0)}/night in {h.get('location', 'Unknown')}")
+            name = h.get('name', 'Unknown')
+            ppn = h.get('price_per_night', 0)
+            loc = h.get('location', 'Unknown')
+            result.append(f"- {name} ${ppn}/night in {loc}")
         return "\n".join(result)
 
     def _format_experiences(self, experiences: list) -> str:
@@ -168,7 +173,9 @@ Provide a concise analysis highlighting:
     def _format_visa_safety(self, visa_safety: dict) -> str:
         if not visa_safety:
             return "No visa/safety data yet"
-        return f"Visa required: {visa_safety.get('visa_required', 'Unknown')}, Safety level: {visa_safety.get('safety_level', 'Unknown')}"
+        visa = visa_safety.get('visa_required', 'Unknown')
+        safety = visa_safety.get('safety_level', 'Unknown')
+        return f"Visa required: {visa}, Safety level: {safety}"
 
     def _generate_collaboration_messages(
         self,
@@ -187,7 +194,10 @@ Provide a concise analysis highlighting:
                 "from_agent": "collaboration_hub",
                 "to_agent": "hotel",
                 "message_type": "constraint",
-                "content": "Top experiences are located far from selected hotels. Consider hotels closer to activity hubs.",
+                "content": (
+                    "Top experiences are located far from selected hotels."
+                    " Consider hotels closer to activity hubs."
+                ),
                 "data": {
                     "activity_locations": self._get_experience_locations(state),
                     "current_hotel_location": state.get("selected_hotel", {}).get("location", "")
@@ -201,10 +211,12 @@ Provide a concise analysis highlighting:
                 "from_agent": "collaboration_hub",
                 "to_agent": "flight",
                 "message_type": "insight",
-                "content": "Current flight arrival/departure times may waste partial days. Look for better-timed options.",
+                "content": (
+                    "Flight arrives late (20:00+), wasting Day 1."
+                    " Look for options that arrive by early afternoon."
+                ),
                 "data": {
                     "preferred_arrival": "before 14:00",
-                    "preferred_departure": "after 18:00"
                 },
                 "round": round
             })
@@ -234,7 +246,7 @@ Provide a concise analysis highlighting:
                     "from_agent": "collaboration_hub",
                     "to_agent": "flight",
                     "message_type": "proposal",
-                    "content": f"Consider cheaper flight option to free up budget for experiences.",
+                    "content": "Consider cheaper flight option to free up budget for experiences.",
                     "data": {
                         "alternative_flight": cheapest_flight
                     },
@@ -271,28 +283,26 @@ Provide a concise analysis highlighting:
         return not matches
 
     def _check_flight_timing_issue(self, state: TravelState) -> bool:
-        """Check if flight times waste partial days.
+        """Check if the inbound flight arrival wastes Day 1.
 
-        FlightAgent emits ISO datetime strings in 'departure' and 'arrival'.
+        FlightAgent emits ISO datetime strings in 'arrival'. Only the arrival
+        leg is checked — the 'departure' field is the outbound departure from
+        origin (e.g. JFK at 06:00), where an early start maximises Day 1 rather
+        than wasting it. A return-leg check belongs here if/when the flight data
+        model carries a return segment; it currently does not.
         """
         flight = state.get("selected_flight", {})
         if not flight:
             return False
 
-        for field, threshold, late in (("arrival", 20, True), ("departure", 10, False)):
-            raw = flight.get(field, "")
-            if not raw:
-                continue
-            try:
-                hour = datetime.fromisoformat(raw).hour
-            except ValueError:
-                continue
-            if late and hour >= threshold:
-                return True
-            if not late and hour < threshold:
-                return True
-
-        return False
+        raw = flight.get("arrival", "")
+        if not raw:
+            return False
+        try:
+            hour = datetime.fromisoformat(raw).hour
+        except ValueError:
+            return False
+        return hour >= 20  # Arriving at 20:00+ means Day 1 is largely wasted
 
     def _check_weather_activity_mismatch(self, state: TravelState) -> bool:
         """Check if planned activities don't suit the weather conditions.
@@ -309,7 +319,8 @@ Provide a concise analysis highlighting:
         summary = weather.get("summary", "").lower()
         precipitation = weather.get("precipitation_mm", 0)
 
-        extreme_heat = avg_temp >= 32  # 32°C / 90°F — standard heat-advisory threshold in most national weather services
+        # 32°C / 90°F — standard heat-advisory threshold in most national weather services
+        extreme_heat = avg_temp >= 32
         significant_rain = precipitation > 50 or any(
             kw in summary for kw in ("rain", "storm", "monsoon", "heavy shower")
         )
@@ -414,7 +425,11 @@ Provide a concise analysis highlighting:
         # Good weather + outdoor activities
         weather = state.get("weather", {})
         if weather.get("avg_temp_c", 0) > 20 and weather.get("avg_temp_c", 0) < 32:
-            outdoor_experiences = [e for e in experiences if "outdoor" in e.get("description", "").lower() or "beach" in e.get("name", "").lower()]
+            outdoor_experiences = [
+                e for e in experiences
+                if "outdoor" in e.get("description", "").lower()
+                or "beach" in e.get("name", "").lower()
+            ]
             if len(outdoor_experiences) >= 3:
                 synergies.append({
                     "type": "weather_activity_synergy",

@@ -1,7 +1,6 @@
-from abc import ABC, abstractmethod
-from typing import Any, Optional
 import logging
 import time
+from abc import ABC, abstractmethod
 
 from langsmith import traceable
 
@@ -14,7 +13,7 @@ class BaseAgent(ABC):
     name: str = "base_agent"
     description: str = ""
 
-    def __init__(self, config: Optional[dict] = None):
+    def __init__(self, config: dict | None = None):
         self.config = config or {}
         self._setup()
 

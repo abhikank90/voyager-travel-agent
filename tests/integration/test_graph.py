@@ -2,8 +2,9 @@
 Integration test for the full travel graph.
 Requires ANTHROPIC_API_KEY in environment (or .env).
 """
-import pytest
 import os
+
+import pytest
 from dotenv import load_dotenv
 
 load_dotenv()

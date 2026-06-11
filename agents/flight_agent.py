@@ -1,13 +1,11 @@
 import os
-import httpx
 from datetime import datetime
-from typing import Optional
+
+import httpx
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
-from langchain_core.messages import HumanMessage
 
 from .base_agent import BaseAgent
-
 
 IATA_MAP = {
     "greece": "ATH",
@@ -32,9 +30,9 @@ async def search_flights(
     origin: str,
     destination: str,
     departure_date: str,
-    return_date: Optional[str],
+    return_date: str | None,
     adults: int = 1,
-    max_price: Optional[float] = None,
+    max_price: float | None = None,
 ) -> dict:
     """Search for flights using Amadeus API. Returns list of flight options with prices."""
     api_key = os.getenv("AMADEUS_API_KEY")
@@ -156,7 +154,7 @@ class FlightAgent(BaseAgent):
         destination = intent.get("destination", "")
         origin = intent.get("origin") or "New York"
         budget = intent.get("budget_usd", 2000)
-        travel_month = intent.get("travel_month", "July")
+        intent.get("travel_month", "July")
         travel_year = intent.get("travel_year", 2026)
         group_size = intent.get("group_size", 1)
 

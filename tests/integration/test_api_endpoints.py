@@ -3,9 +3,11 @@ Integration tests for FastAPI endpoints.
 Tests collaborative endpoints, option selection, and refinement.
 """
 
+from unittest.mock import patch
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock, AsyncMock
+
 from api.main import app
 
 

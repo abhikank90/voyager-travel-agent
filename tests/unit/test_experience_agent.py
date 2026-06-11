@@ -1,283 +1,143 @@
+"""Unit tests for ExperienceAgent.
+
+Two test modes:
+  - Mock-LLM tests: patch ChatAnthropic so Claude returns controlled JSON.
+  - Fallback tests: let the chain fail (ci-test-key is invalid) and verify
+    _fallback_experiences satisfies the contract. Used for lightweight checks
+    that don't need full control over the response content.
 """
-Unit tests for ExperienceAgent.
-Tests RAG-based activity recommendations with Claude integration.
-"""
+
+import json
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock, patch
+
 from agents.experience_agent import ExperienceAgent
 
+VALID_EXPERIENCES_JSON = json.dumps([
+    {"name": "Sunset in Oia", "cost_usd": 0, "category": "culture",
+     "location": "Oia, Santorini", "best_time_of_day": "evening",
+     "description": "Iconic Santorini sunset viewpoint"},
+    {"name": "Caldera Boat Tour", "cost_usd": 80, "category": "outdoor",
+     "location": "Fira center", "best_time_of_day": "morning",
+     "description": "Sail around the volcanic caldera"},
+    {"name": "Greek Taverna Dinner", "cost_usd": 40, "category": "food",
+     "location": "Oia village", "best_time_of_day": "evening",
+     "description": "Traditional mezze at a cliffside restaurant"},
+])
 
-@pytest.fixture
-def agent():
-    """Create ExperienceAgent with mocked Claude client."""
-    with patch("agents.experience_agent.ChatAnthropic") as mock_claude:
-        mock_chain = MagicMock()
-        mock_response = MagicMock()
-        mock_response.content = """
-        [
-            {
-                "name": "Santorini Beach Visit",
-                "description": "Visit the famous Red Beach",
-                "price": 0,
-                "duration": "3 hours",
-                "type": "beach",
-                "location": "Santorini"
-            },
-            {
-                "name": "Acropolis Tour",
-                "description": "Guided tour of ancient ruins",
-                "price": 50,
-                "duration": "2 hours",
-                "type": "culture",
-                "location": "Athens"
-            },
-            {
-                "name": "Greek Food Tour",
-                "description": "Sample local cuisine",
-                "price": 80,
-                "duration": "4 hours",
-                "type": "food",
-                "location": "Athens"
-            }
-        ]
-        """
-        mock_chain.invoke = MagicMock(return_value=mock_response)
+INTENT_BASE = {"destination": "Greece", "interests": ["beaches", "food"], "budget_usd": 2000, "duration_days": 7}
 
+
+def _make_agent_with_mock_llm(response_content: str = VALID_EXPERIENCES_JSON):
+    """Create an ExperienceAgent whose LLM chain returns controlled JSON.
+
+    The chain is built as `self.prompt | self.llm` inside _execute, so `a | b`
+    calls `a.__or__(b)` — i.e. prompt's __or__, not llm's.  We replace
+    agent.prompt with a mock whose __or__ returns mock_chain so that
+    `chain = self.prompt | self.llm` gives us the controllable mock_chain.
+    """
+    with patch("agents.experience_agent.ChatAnthropic"):
         agent = ExperienceAgent()
-        agent.chain = mock_chain
-        return agent
+
+    mock_response = MagicMock()
+    mock_response.content = response_content
+    mock_chain = AsyncMock()
+    mock_chain.ainvoke = AsyncMock(return_value=mock_response)
+
+    mock_prompt = MagicMock()
+    mock_prompt.__or__ = MagicMock(return_value=mock_chain)
+    agent.prompt = mock_prompt
+    agent._test_chain = mock_chain
+    return agent
 
 
 @pytest.mark.asyncio
-async def test_experience_recommendations_returned(agent):
-    """Test that experience recommendations are returned."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches", "food"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
+async def test_returns_experiences_key():
+    agent = _make_agent_with_mock_llm()
+    result = await agent._execute({"intent": INTENT_BASE})
     assert "experiences" in result
     assert len(result["experiences"]) > 0
 
 
 @pytest.mark.asyncio
-async def test_experience_has_required_fields(agent):
-    """Test that experiences have all required fields."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    for exp in experiences:
+async def test_experiences_have_correct_fields():
+    """Actual field names: cost_usd and category (not price and type)."""
+    agent = _make_agent_with_mock_llm()
+    result = await agent._execute({"intent": INTENT_BASE})
+    for exp in result["experiences"]:
         assert "name" in exp
-        assert "price" in exp
-        assert "type" in exp
+        assert "cost_usd" in exp
+        assert "category" in exp
         assert "location" in exp
 
 
 @pytest.mark.asyncio
-async def test_includes_free_experiences(agent):
-    """Test that some free experiences are included."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    free_experiences = [e for e in experiences if e["price"] == 0]
-
-    # Should include at least one free option
-    assert len(free_experiences) > 0
+async def test_claude_chain_is_called():
+    agent = _make_agent_with_mock_llm()
+    await agent._execute({"intent": INTENT_BASE})
+    agent._test_chain.ainvoke.assert_called_once()
 
 
 @pytest.mark.asyncio
-async def test_experiences_match_interests(agent):
-    """Test that experiences align with user interests."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches", "food"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    exp_types = [e.get("type", "").lower() for e in experiences]
-
-    # Should have beach or food related experiences
-    assert any("beach" in t or "food" in t for t in exp_types)
+async def test_destination_passed_to_chain():
+    agent = _make_agent_with_mock_llm()
+    await agent._execute({"intent": INTENT_BASE})
+    call_kwargs = agent._test_chain.ainvoke.call_args[0][0]
+    assert call_kwargs["destination"] == "Greece"
 
 
 @pytest.mark.asyncio
-async def test_experience_prices_reasonable(agent):
-    """Test that experience prices are realistic."""
+async def test_weather_constraint_added_to_prompt():
+    """When hub sends a weather constraint, location_focus must be non-empty."""
+    agent = _make_agent_with_mock_llm()
     state = {
-        "intent": {
-            "destination": "Greece",
-            "budget_usd": 2000
-        }
+        "intent": INTENT_BASE,
+        "collaboration_round": 2,
+        "agent_messages": [
+            {
+                "to_agent": "experience",
+                "message_type": "constraint",
+                "data": {"suggested_activity_times": ["morning", "evening"]},
+                "round": 1,
+            }
+        ],
     }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    for exp in experiences:
-        # Prices should be reasonable (free to a few hundred)
-        assert 0 <= exp["price"] <= 500
+    await agent._execute(state)
+    call_kwargs = agent._test_chain.ainvoke.call_args[0][0]
+    assert call_kwargs["location_focus"] != "", "Expected non-empty location_focus for weather constraint"
 
 
 @pytest.mark.asyncio
-async def test_returns_multiple_experiences(agent):
-    """Test that multiple experience options are returned."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    # Should return at least 2-3 options
-    assert len(result["experiences"]) >= 2
+async def test_no_constraint_has_empty_location_focus():
+    agent = _make_agent_with_mock_llm()
+    await agent._execute({"intent": INTENT_BASE})
+    call_kwargs = agent._test_chain.ainvoke.call_args[0][0]
+    assert call_kwargs["location_focus"] == ""
 
 
 @pytest.mark.asyncio
-async def test_experience_types_are_valid(agent):
-    """Test that experience types are from valid categories."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    valid_types = ["beach", "culture", "food", "adventure", "nature", "history", "nightlife", "shopping"]
-
-    for exp in experiences:
-        exp_type = exp.get("type", "").lower()
-        # Type should be recognizable
-        assert any(valid in exp_type for valid in valid_types) or len(exp_type) > 0
-
-
-@pytest.mark.asyncio
-async def test_claude_api_integration(agent):
-    """Test that Claude API is called for recommendations."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    # Verify Claude chain was invoked
-    agent.chain.invoke.assert_called()
-
-
-@pytest.mark.asyncio
-async def test_handles_missing_interests_gracefully(agent):
-    """Test that agent works even without specific interests."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    # Should still return experiences
+async def test_fallback_used_when_claude_returns_invalid_json():
+    agent = _make_agent_with_mock_llm(response_content="not json at all")
+    result = await agent._execute({"intent": INTENT_BASE})
     assert "experiences" in result
     assert len(result["experiences"]) > 0
 
 
 @pytest.mark.asyncio
-async def test_error_when_missing_destination():
-    """Test error handling when destination is missing."""
+async def test_fallback_experiences_have_required_fields():
+    agent = _make_agent_with_mock_llm(response_content="bad json")
+    result = await agent._execute({"intent": INTENT_BASE})
+    for exp in result["experiences"]:
+        assert "name" in exp
+        assert "cost_usd" in exp
+        assert "category" in exp
+        assert "location" in exp
+
+
+@pytest.mark.asyncio
+async def test_missing_intent_returns_error():
     with patch("agents.experience_agent.ChatAnthropic"):
         agent = ExperienceAgent()
-
-        state = {
-            "intent": {
-                "budget_usd": 2000
-            }
-        }
-
-        result = await agent._execute(state)
-
-        # Should handle gracefully
-        assert "errors" in result or "experiences" in result
-
-
-@pytest.mark.asyncio
-async def test_experience_descriptions_exist(agent):
-    """Test that experiences have descriptions."""
-    state = {
-        "intent": {
-            "destination": "Greece",
-            "interests": ["beaches"],
-            "budget_usd": 2000
-        }
-    }
-
-    result = await agent._execute(state)
-
-    experiences = result["experiences"]
-    for exp in experiences:
-        # Description should exist (optional but recommended)
-        if "description" in exp:
-            assert len(exp["description"]) > 0
-
-
-@pytest.mark.asyncio
-async def test_experiences_for_different_destinations():
-    """Test that experiences are destination-specific."""
-    with patch("agents.experience_agent.ChatAnthropic") as mock_claude:
-        # Mock different responses for different destinations
-        mock_chain = MagicMock()
-        mock_response_greece = MagicMock()
-        mock_response_greece.content = '[{"name": "Acropolis", "price": 50, "type": "culture", "location": "Athens"}]'
-
-        mock_chain.invoke = MagicMock(return_value=mock_response_greece)
-
-        agent = ExperienceAgent()
-        agent.chain = mock_chain
-
-        state_greece = {
-            "intent": {
-                "destination": "Greece",
-                "budget_usd": 2000
-            }
-        }
-
-        result = await agent._execute(state_greece)
-
-        # Should invoke Claude with destination context
-        agent.chain.invoke.assert_called()
-        call_args = str(agent.chain.invoke.call_args)
-        assert "Greece" in call_args or "greece" in call_args.lower()
+    result = await agent._execute({})
+    assert "errors" in result

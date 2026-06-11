@@ -1,4 +1,5 @@
 import os
+
 import httpx
 from langchain_anthropic import ChatAnthropic
 
@@ -65,7 +66,7 @@ class HotelAgent(BaseAgent):
         travel_year = intent.get("travel_year", 2026)
         group_size = intent.get("group_size", 1)
         duration = intent.get("duration_days") or 14
-        accommodation_pref = intent.get("accommodation_preference", "hotel")
+        intent.get("accommodation_preference", "hotel")
 
         check_in = f"{travel_year}-07-01"
         check_out = f"{travel_year}-07-{1 + duration:02d}"

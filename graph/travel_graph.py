@@ -22,22 +22,22 @@ import asyncio
 import time
 from typing import Literal
 
-from langgraph.graph import StateGraph, END
+from langgraph.graph import END, StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langsmith import traceable
 
 from agents import (
-    IntentParserAgent,
+    BudgetGuardrailAgent,
+    CollaborationHubAgent,
+    ExperienceAgent,
     FlightAgent,
     HotelAgent,
-    ExperienceAgent,
-    WeatherAgent,
-    VisaSafetyAgent,
-    BudgetGuardrailAgent,
+    IntentParserAgent,
     ItineraryBuilderAgent,
-    PersonalisationAgent,
-    CollaborationHubAgent,
     OptionGeneratorAgent,
+    PersonalisationAgent,
+    VisaSafetyAgent,
+    WeatherAgent,
 )
 from graph.state import TravelState
 
@@ -368,14 +368,15 @@ async def run_collaborative_travel_query(
             benchmark dataset.
     """
     import uuid
-    from metrics.collector import record_session
-    from metrics.token_tracker import start_session, get_current, compute_cost
+
     from config import get_api_config
+    from metrics.collector import record_session
+    from metrics.token_tracker import compute_cost, get_current, start_session
 
     if session_id is None:
         session_id = str(uuid.uuid4())
 
-    token_usage = start_session()
+    start_session()
 
     initial_state: TravelState = {
         "user_query": user_query,

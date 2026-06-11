@@ -1,25 +1,23 @@
-import asyncio
 import json
 import logging
 import os
 import uuid
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Request, Depends, Header, status
+from fastapi import Depends, FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 from fastapi.security import APIKeyHeader
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 
 from graph.travel_graph import (
-    run_travel_query,
-    run_collaborative_travel_query,
-    travel_graph,
     collaborative_travel_graph,
+    run_collaborative_travel_query,
+    run_travel_query,
+    travel_graph,
 )
 
 logging.basicConfig(level=logging.INFO)
