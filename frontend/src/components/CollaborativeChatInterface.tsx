@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useState } from 'react'
+
 import { Send, MapPin, Plane, Sparkles } from 'lucide-react'
 import {
   CollaborativeAgentUpdate,

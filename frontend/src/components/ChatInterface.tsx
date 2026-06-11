@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Send, MapPin, Plane } from 'lucide-react'
 import { AgentUpdate, AgentStatus, BudgetBreakdown, Itinerary } from '../types'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TripOption, DayPlan } from '../types'
+import { TripOption } from '../types'
 import {
   ArrowLeft,
   ExternalLink,

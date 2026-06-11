@@ -1,6 +1,6 @@
 import React from 'react'
 import { TripOption } from '../types'
-import { Plane, Hotel, MapPin, DollarSign, CheckCircle, AlertCircle } from 'lucide-react'
+import { Plane, Hotel, MapPin, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface TripOptionCardProps {
   option: TripOption
