@@ -1,5 +1,6 @@
 import os
 import httpx
+from datetime import datetime
 from typing import Optional
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
@@ -90,33 +91,58 @@ async def search_flights(
         return {"flights": results}
 
 
-def _mock_flight_data(origin, destination, departure_date, return_date, adults):
-    """Fallback mock data for local dev without API keys."""
-    return {
-        "flights": [
-            {
-                "price_usd": 680 * adults,
-                "airline": "UA",
-                "departure": f"{departure_date}T08:00:00",
-                "arrival": f"{departure_date}T22:30:00",
-                "stops": 1,
-                "duration": "PT14H30M",
-            },
-            {
-                "price_usd": 750 * adults,
-                "airline": "DL",
-                "departure": f"{departure_date}T10:30:00",
-                "arrival": f"{departure_date}T23:45:00",
-                "stops": 1,
-                "duration": "PT13H15M",
-            },
-        ],
-        "mock": True,
-    }
+def _mock_flight_data(
+    origin,
+    destination,
+    departure_date,
+    return_date,
+    adults,
+    preferred_arrival_hour: int | None = None,
+):
+    """Fallback mock data for local dev without API keys.
+
+    When preferred_arrival_hour is set (from a collaboration constraint), a
+    well-timed option is included so that the constraint can be satisfied.
+    The caller selects the cheapest flight that meets the constraint; this
+    function only ensures a qualifying option exists.
+    """
+    flights = [
+        {
+            "price_usd": 680 * adults,
+            "airline": "UA",
+            "departure": f"{departure_date}T08:00:00",
+            "arrival": f"{departure_date}T22:30:00",
+            "stops": 1,
+            "duration": "PT14H30M",
+        },
+        {
+            "price_usd": 750 * adults,
+            "airline": "DL",
+            "departure": f"{departure_date}T10:30:00",
+            "arrival": f"{departure_date}T23:45:00",
+            "stops": 1,
+            "duration": "PT13H15M",
+        },
+    ]
+
+    if preferred_arrival_hour is not None:
+        # Add a daytime-arrival option. Premium reflects real fare structure:
+        # short-connection itineraries with early arrivals typically cost more.
+        flights.append({
+            "price_usd": 890 * adults,
+            "airline": "LH",
+            "departure": f"{departure_date}T06:00:00",
+            "arrival": f"{departure_date}T13:00:00",
+            "stops": 1,
+            "duration": "PT7H00M",
+        })
+
+    return {"flights": flights, "mock": True}
 
 
 class FlightAgent(BaseAgent):
     name = "flight_agent"
+    short_name = "flight"
     description = "Searches flights and returns best options within budget"
 
     def _setup(self):
@@ -128,7 +154,7 @@ class FlightAgent(BaseAgent):
             return self._error_state("No intent in state")
 
         destination = intent.get("destination", "")
-        origin = intent.get("origin") or "New York"  # Handle None value
+        origin = intent.get("origin") or "New York"
         budget = intent.get("budget_usd", 2000)
         travel_month = intent.get("travel_month", "July")
         travel_year = intent.get("travel_year", 2026)
@@ -138,20 +164,66 @@ class FlightAgent(BaseAgent):
         return_date = f"{travel_year}-07-14"
         flight_budget = budget * 0.45
 
-        result = await search_flights.ainvoke({
-            "origin": origin,
-            "destination": destination,
-            "departure_date": departure_date,
-            "return_date": return_date,
-            "adults": group_size,
-            "max_price": flight_budget,
-        })
+        # Parse preferred_arrival constraint from collaboration messages, if any.
+        # The hub sends "before 14:00" when the selected flight arrives late and wastes Day 1.
+        preferred_arrival_hour: int | None = None
+        for msg in self._messages_for_me(state):
+            if msg.get("message_type") == "insight":
+                pref = msg.get("data", {}).get("preferred_arrival", "")
+                if pref:
+                    try:
+                        preferred_arrival_hour = int(
+                            pref.replace("before ", "").split(":")[0].strip()
+                        )
+                    except ValueError:
+                        pass
+                    break
+
+        api_key = os.getenv("AMADEUS_API_KEY")
+        api_secret = os.getenv("AMADEUS_API_SECRET")
+
+        if api_key and api_secret:
+            result = await search_flights.ainvoke({
+                "origin": origin,
+                "destination": destination,
+                "departure_date": departure_date,
+                "return_date": return_date,
+                "adults": group_size,
+                "max_price": flight_budget,
+            })
+        else:
+            result = _mock_flight_data(
+                origin, destination, departure_date, return_date, group_size,
+                preferred_arrival_hour=preferred_arrival_hour,
+            )
 
         flights = result.get("flights", [])
-        best = min(flights, key=lambda f: f["price_usd"]) if flights else None
+
+        if not flights:
+            best = None
+        elif preferred_arrival_hour is not None:
+            # Prefer cheapest flight that satisfies the timing constraint;
+            # fall back to cheapest overall if none qualify.
+            on_time = [
+                f for f in flights
+                if _arrival_hour(f.get("arrival", "")) < preferred_arrival_hour
+            ]
+            best = min(on_time, key=lambda f: f["price_usd"]) if on_time else min(flights, key=lambda f: f["price_usd"])
+        else:
+            best = min(flights, key=lambda f: f["price_usd"])
 
         return {
             "flights": flights,
             "selected_flight": best,
             "flight_cost_usd": best["price_usd"] if best else 0,
         }
+
+
+def _arrival_hour(iso_str: str) -> int:
+    """Parse an ISO datetime string and return the hour, or 25 on failure (never on-time)."""
+    if not iso_str:
+        return 25
+    try:
+        return datetime.fromisoformat(iso_str).hour
+    except ValueError:
+        return 25

@@ -19,7 +19,7 @@ Destination: {destination}
 Interests: {interests}
 Budget for activities (USD): {activity_budget}
 Duration: {duration_days} days
-
+{location_focus}
 Provide a JSON list of experiences with: name, description, cost_usd, category, best_time_of_day,
 and location (the specific neighborhood, area, or part of {destination} where this takes place —
 e.g. "Oia, Santorini" or "Plaka district" or "Chaweng Beach").
@@ -28,6 +28,7 @@ Return ONLY valid JSON array."""
 
 class ExperienceAgent(BaseAgent):
     name = "experience_agent"
+    short_name = "experience"
     description = "Recommends experiences and activities using RAG over destination knowledge base"
 
     def _setup(self):
@@ -69,12 +70,26 @@ class ExperienceAgent(BaseAgent):
             if not interests:
                 interests = context.get("popular_interests", [])
 
+        # Build location/weather guidance from collaboration messages, if any.
+        location_focus_parts: list[str] = []
+        for msg in self._messages_for_me(state):
+            data = msg.get("data", {})
+            # Weather constraint: schedule around heat or rain
+            if msg.get("message_type") == "constraint" and data.get("suggested_activity_times"):
+                times = data["suggested_activity_times"]
+                location_focus_parts.append(
+                    f"Weather advisory: prefer {' or '.join(times)} activities; "
+                    "include indoor alternatives to avoid midday heat or rain."
+                )
+        location_focus = " ".join(location_focus_parts)
+
         chain = self.prompt | self.llm
         response = await chain.ainvoke({
             "destination": destination,
             "interests": ", ".join(interests) if interests else "beaches, local food, culture",
             "activity_budget": round(activity_budget),
             "duration_days": duration,
+            "location_focus": location_focus,
         })
 
         try:

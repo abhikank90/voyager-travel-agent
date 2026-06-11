@@ -42,5 +42,23 @@ class BaseAgent(ABC):
         """Core agent logic — must return a dict of state updates."""
         ...
 
+    def _messages_for_me(self, state: dict) -> list[dict]:
+        """Return collaboration messages targeting this agent from prior rounds.
+
+        Matches both the full agent name and the short hub-convention name
+        (e.g. "hotel_agent" and "hotel") so research agents can read what
+        the CollaborationHub addressed to them without knowing hub internals.
+        """
+        current_round = state.get("collaboration_round", 1)
+        my_ids = {self.name}
+        short = getattr(self, "short_name", None)
+        if short:
+            my_ids.add(short)
+        return [
+            m for m in state.get("agent_messages", [])
+            if m.get("to_agent") in my_ids | {"all"}
+            and m.get("round", 0) < current_round
+        ]
+
     def _error_state(self, message: str) -> dict:
         return {"errors": {self.name: message}}

@@ -179,7 +179,9 @@ Provide a concise analysis highlighting:
 
         messages: list[CollaborationMessage] = []
 
-        # Check hotel-experience alignment
+        # Check hotel-experience alignment.
+        # Only the hotel is asked to relocate — user interests drive experience selection,
+        # so experiences are the "truth" and the hotel should adapt to them.
         if self._check_hotel_experience_mismatch(state):
             messages.append({
                 "from_agent": "collaboration_hub",
@@ -189,17 +191,6 @@ Provide a concise analysis highlighting:
                 "data": {
                     "activity_locations": self._get_experience_locations(state),
                     "current_hotel_location": state.get("selected_hotel", {}).get("location", "")
-                },
-                "round": round
-            })
-            messages.append({
-                "from_agent": "collaboration_hub",
-                "to_agent": "experience",
-                "message_type": "question",
-                "content": "Can you find activities near the selected hotel area?",
-                "data": {
-                    "hotel_location": state.get("selected_hotel", {}).get("location", ""),
-                    "radius_km": 10
                 },
                 "round": round
             })
@@ -318,7 +309,7 @@ Provide a concise analysis highlighting:
         summary = weather.get("summary", "").lower()
         precipitation = weather.get("precipitation_mm", 0)
 
-        extreme_heat = avg_temp >= 32
+        extreme_heat = avg_temp >= 32  # 32°C / 90°F — standard heat-advisory threshold in most national weather services
         significant_rain = precipitation > 50 or any(
             kw in summary for kw in ("rain", "storm", "monsoon", "heavy shower")
         )
