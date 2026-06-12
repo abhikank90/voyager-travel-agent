@@ -301,7 +301,7 @@ Return ONLY a JSON array of day objects with this structure:
             temperature=0.7,
             messages=[{"role": "user", "content": prompt}]
         )
-        track_usage(response.usage.input_tokens, response.usage.output_tokens)
+        track_usage(response.usage.input_tokens, response.usage.output_tokens, model=self.model)
 
         itinerary_text = response.content[0].text
 

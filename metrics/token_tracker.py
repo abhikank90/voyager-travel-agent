@@ -120,19 +120,36 @@ def compute_cost(input_tokens: int, output_tokens: int, model: str = "") -> floa
 def compute_session_cost(usage: TokenUsage) -> float:
     """Compute session cost using per-model pricing for accuracy.
 
-    When per_model breakdown is present each model's tokens are priced at its own
-    rate, so Haiku tokens are never charged at Sonnet rates. Falls back to Sonnet
-    rates applied to undifferentiated totals when no model tracking is available.
+    When per_model breakdown is present each model's tokens are priced at their
+    own rate, so Haiku tokens are never charged at Sonnet rates. Any tokens that
+    were tracked without a model string land only in the session totals, not in
+    per_model — those are the unattributed remainder. The remainder is priced at
+    Sonnet fallback rates and a warning is logged so the gap is never silent.
+    Falls back to Sonnet rates on the full totals when per_model is empty.
     """
-    if usage.per_model:
-        return round(
-            sum(
-                compute_cost(m["input"], m["output"], model)
-                for model, m in usage.per_model.items()
-            ),
-            6,
+    if not usage.per_model:
+        return compute_cost(usage.input_tokens, usage.output_tokens)
+
+    attributed_input = sum(m["input"] for m in usage.per_model.values())
+    attributed_output = sum(m["output"] for m in usage.per_model.values())
+    model_cost = sum(
+        compute_cost(m["input"], m["output"], model)
+        for model, m in usage.per_model.items()
+    )
+
+    remainder_input = usage.input_tokens - attributed_input
+    remainder_output = usage.output_tokens - attributed_output
+    if remainder_input > 0 or remainder_output > 0:
+        _logger.warning(
+            "compute_session_cost: %d input and %d output tokens have no model attribution "
+            "— priced at Sonnet fallback rates. Pass model= to track_usage() to fix this.",
+            remainder_input,
+            remainder_output,
         )
-    return compute_cost(usage.input_tokens, usage.output_tokens)
+        remainder_cost = compute_cost(remainder_input, remainder_output)
+        return round(model_cost + remainder_cost, 6)
+
+    return round(model_cost, 6)
 
 
 class TokenTrackingCallback(BaseCallbackHandler):

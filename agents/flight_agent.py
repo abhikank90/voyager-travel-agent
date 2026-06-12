@@ -5,6 +5,8 @@ import httpx
 from langchain_anthropic import ChatAnthropic
 from langchain_core.tools import tool
 
+from metrics.token_tracker import TokenTrackingCallback
+
 from .base_agent import BaseAgent
 
 IATA_MAP = {
@@ -149,7 +151,7 @@ class FlightAgent(BaseAgent):
             model = get_api_config().llm.flight_agent_model
         except Exception:
             model = "claude-haiku-4-5-20251001"
-        self.llm = ChatAnthropic(model=model, temperature=0)
+        self.llm = ChatAnthropic(model=model, temperature=0, callbacks=[TokenTrackingCallback(model=model)])
 
     async def _execute(self, state: dict) -> dict:
         intent = state.get("intent", {})

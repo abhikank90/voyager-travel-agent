@@ -52,7 +52,7 @@ class CollaborationHubAgent(BaseAgent):
                 "content": analysis_prompt
             }]
         )
-        track_usage(response.usage.input_tokens, response.usage.output_tokens)
+        track_usage(response.usage.input_tokens, response.usage.output_tokens, model=self.model)
 
         # Generates a narrative summary of cross-agent findings for display in
         # the UI (stored in shared_discoveries["hub_narrative"]). Conflict

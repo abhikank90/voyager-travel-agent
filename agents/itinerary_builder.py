@@ -3,6 +3,8 @@ import json
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
+from metrics.token_tracker import TokenTrackingCallback
+
 from .base_agent import BaseAgent
 
 ITINERARY_PROMPT = """You are a master travel planner. Build a complete, realistic day-by-day itinerary.
@@ -48,6 +50,7 @@ class ItineraryBuilderAgent(BaseAgent):
             model=model,
             temperature=0.4,
             max_tokens=4096,
+            callbacks=[TokenTrackingCallback(model=model)],
         )
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a master travel planner. Always return valid JSON."),
