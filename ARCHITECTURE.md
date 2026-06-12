@@ -1256,6 +1256,61 @@ async def test_full_collaborative_flow():
 
 ---
 
+## Benchmark Methodology
+
+### What the benchmark measures
+
+The benchmark runs 25 diverse trip queries (beach, city, adventure, budget, family) through the
+complete collaborative graph in two modes — *full* (with hub routing and refinement rounds) and
+*baseline* (Round 1 → audit → options, hub routing disabled). Both modes run identical conflict
+detectors at audit time, so final-conflict counts are directly comparable.
+
+Reported metrics measure the **coordination layer**, not absolute travel quality:
+
+| Metric | What it measures |
+|---|---|
+| Conflict resolution rate | % of Round-1 conflicts eliminated by selective refinement |
+| Cost overhead | Extra API spend added by hub + refinement, vs. baseline |
+| Agent-call savings | Reduction in research-agent invocations vs. naive full re-run |
+
+### Controlled workload: simulated inventory
+
+The benchmark runs against **simulated flight and hotel inventory** — the `mock: True` catalogs
+returned by `_mock_flight_data()` in [agents/flight_agent.py](agents/flight_agent.py) and
+`_mock_hotel_data()` in [agents/hotel_agent.py](agents/hotel_agent.py). The fixtures are
+constructed so that locally-optimal agent choices (cheapest flight, best-value hotel) reliably
+produce cross-agent conflicts after Round 1:
+
+- The cheapest flight arrives at 22:30, triggering `timing_inefficiency`.
+- The best-value hotel is on the beachfront while top experiences cluster inland, triggering `location_mismatch`.
+- July weather flags heat advisories for outdoor activities, triggering `weather_activity_mismatch`.
+
+This design makes conflict scenarios **reproducible and measurable**: every query in the benchmark
+starts in conflict, so resolution rate and coordination cost can be computed precisely.
+
+**What is and is not real:**
+
+- All LLM calls (intent parsing, experience generation, hub narrative, option synthesis) are real Anthropic API calls.
+- Conflict detection, feedback routing, and selective re-execution logic are identical in benchmark and production modes.
+- Flight and hotel data are simulated. Weather, visa/safety, and experience data use the same mock/fallback paths as development without API keys.
+- Reported conflict frequency (2.0 per query, 100% of queries) is a property of this controlled workload, not an empirical claim about production travel systems. Real inventory does not guarantee satisfiable conflict resolution; the pattern routes feedback, it cannot conjure inventory that does not exist.
+
+### Cost estimation
+
+Costs are estimated from per-model token usage at published Anthropic rates (June 2026):
+`claude-sonnet-4-6` at $3/$15 per MTok (input/output), `claude-haiku-4-5-20251001` at $1/$5.
+Session estimates are computed by `metrics.token_tracker.compute_session_cost()`, which sums
+per-model costs so Haiku tokens are never priced at Sonnet rates. Published benchmark numbers
+have been cross-checked against billed API usage in the Anthropic Console.
+
+### Planned future work
+
+Record/replay of real Amadeus and OpenWeather inventory to measure resolution rate and cost
+overhead against non-guaranteed satisfiability — the regime where the coordination pattern's
+practical limits become visible.
+
+---
+
 ## Future Enhancements
 
 ### Near-Term

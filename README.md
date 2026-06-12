@@ -108,6 +108,8 @@ The one unresolved conflict was a `weather_activity_mismatch` on a query whose s
 2. **Resolution rate measures coordination mechanics given satisfiable data.** The fixture inventory always contains a qualifying option. With real inventory, satisfiability isn't guaranteed — the pattern routes feedback to the right agent; it cannot conjure a hotel that doesn't exist. Claim: *given a satisfiable option space, the coordination layer finds it within ≤3 rounds 99% of the time.*
 3. **Selective re-execution saves cost, not latency.** Rounds run under `asyncio.gather`, so duration is bounded by the slowest member, not the count — Round 2 (fewer agents, 18.0s) actually ran *longer* than Round 1 (14.1s) because the rerun set includes the LLM-heavy experience agent. The −30% is in agent invocations (and therefore API cost), which grows in importance as agents get heavier. The +2.1% cost delta is partly an artifact of cheap mock agents; the 30% call reduction is the number that transfers.
 
+Full details on workload design, inventory construction, cost estimation methodology, and planned live-inventory follow-up: **[ARCHITECTURE.md § Benchmark Methodology](ARCHITECTURE.md#benchmark-methodology)**.
+
 ## Example: Location Conflict, End to End
 
 A real trace from the benchmark (Greece, $2,000, beaches and local food):

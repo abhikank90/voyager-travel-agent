@@ -104,6 +104,20 @@ class LLMConfig(BaseModel):
     """Configuration for LLM (Claude) usage across agents."""
     api_key: str = Field(default="", description="Anthropic API key")
 
+    # ── Model IDs ────────────────────────────────────────────────────────────
+    # These are exact Anthropic API model identifiers, not aliases.
+    #
+    # claude-sonnet-4-6          — canonical ID verified via GET /v1/models,
+    #                              June 2026. No date suffix; Anthropic publishes
+    #                              this version without one.
+    # claude-haiku-4-5-20251001  — dated snapshot; the date is part of the
+    #                              official ID and pins the exact model version.
+    #
+    # If you add a new model ID here, you MUST also add its pricing entry in
+    # metrics/token_tracker.MODEL_PRICING, otherwise session cost estimates
+    # will silently fall back to Sonnet rates and log a warning.
+    # ──────────────────────────────────────────────────────────────────────────
+
     # Sonnet tier — synthesis, parsing, experience generation
     default_model: str = Field(default="claude-sonnet-4-6")
     intent_parser_model: str = Field(default="claude-sonnet-4-6")

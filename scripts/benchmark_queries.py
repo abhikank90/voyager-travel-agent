@@ -14,6 +14,8 @@ Usage:
     python scripts/benchmark_queries.py --dry-run             # list queries without running
 
 Requires ANTHROPIC_API_KEY in environment or .env file.
+
+Results are written against the current git commit; published numbers reference tag v1.0-infoq.
 """
 
 import argparse
