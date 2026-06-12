@@ -9,26 +9,58 @@ Two integration points:
   - Raw Anthropic SDK (CollaborationHub, OptionGenerator):
         from metrics.token_tracker import track_usage
         response = self.client.messages.create(...)
-        track_usage(response.usage.input_tokens, response.usage.output_tokens)
+        track_usage(response.usage.input_tokens, response.usage.output_tokens, model=MODEL)
 
-  - LangChain ChatAnthropic (IntentParser, ExperienceAgent):
+  - LangChain ChatAnthropic (IntentParser, ExperienceAgent, etc.):
         from metrics.token_tracker import TokenTrackingCallback
-        self.llm = ChatAnthropic(..., callbacks=[TokenTrackingCallback()])
+        self.llm = ChatAnthropic(..., callbacks=[TokenTrackingCallback(model=MODEL)])
+
+Pricing: MODEL_PRICING maps exact Anthropic model IDs to (input, output) rates in USD
+per million tokens. Unknown models log a warning and fall back to Sonnet rates.
+
+Sanity check: 1M input + 1M output on Haiku → $6.00; on Sonnet → $18.00.
 """
 
 from __future__ import annotations
 
+import logging
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.outputs import LLMResult
+
+_logger = logging.getLogger(__name__)
+
+# (input_cost_per_mtok, output_cost_per_mtok) in USD — verify at anthropic.com/pricing
+MODEL_PRICING: dict[str, tuple[float, float]] = {
+    "claude-haiku-4-5-20251001": (1.00, 5.00),
+    "claude-sonnet-4-5-20250929": (3.00, 15.00),
+    "claude-sonnet-4-6": (3.00, 15.00),
+}
+_SONNET_RATES: tuple[float, float] = (3.00, 15.00)
+
+
+def _pricing_for(model: str) -> tuple[float, float]:
+    """Return (input_rate, output_rate) per MTok. Warns and falls back for unknown models."""
+    if model in MODEL_PRICING:
+        return MODEL_PRICING[model]
+    for key, rates in MODEL_PRICING.items():
+        if key in model or model in key:
+            return rates
+    _logger.warning(
+        "Unknown model %r — pricing unknown, using Sonnet fallback ($3/$15 per MTok). "
+        "Add this model to metrics.token_tracker.MODEL_PRICING.",
+        model,
+    )
+    return _SONNET_RATES
 
 
 @dataclass
 class TokenUsage:
     input_tokens: int = 0
     output_tokens: int = 0
+    models_used: dict = field(default_factory=dict)  # model_id → call_count
 
     @property
     def total_tokens(self) -> int:
@@ -39,6 +71,7 @@ class TokenUsage:
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "total_tokens": self.total_tokens,
+            "models_used": dict(self.models_used),
         }
 
 
@@ -52,12 +85,14 @@ def start_session() -> TokenUsage:
     return usage
 
 
-def track_usage(input_tokens: int, output_tokens: int) -> None:
-    """Add tokens from one raw Anthropic API call to the running total."""
+def track_usage(input_tokens: int, output_tokens: int, model: str = "") -> None:
+    """Add tokens from one LLM call to the running session total."""
     usage = _current.get()
     if usage is not None:
         usage.input_tokens += input_tokens
         usage.output_tokens += output_tokens
+        if model:
+            usage.models_used[model] = usage.models_used.get(model, 0) + 1
 
 
 def get_current() -> TokenUsage | None:
@@ -65,11 +100,11 @@ def get_current() -> TokenUsage | None:
     return _current.get()
 
 
-def compute_cost(input_tokens: int, output_tokens: int, pricing) -> float:
-    """Return estimated USD cost given token counts and an LLMConfig pricing object."""
+def compute_cost(input_tokens: int, output_tokens: int, model: str = "") -> float:
+    """Return estimated USD cost given token counts and a model ID string."""
+    in_rate, out_rate = _pricing_for(model) if model else _SONNET_RATES
     return round(
-        input_tokens / 1_000_000 * pricing.input_cost_per_mtok
-        + output_tokens / 1_000_000 * pricing.output_cost_per_mtok,
+        input_tokens / 1_000_000 * in_rate + output_tokens / 1_000_000 * out_rate,
         6,
     )
 
@@ -82,6 +117,10 @@ class TokenTrackingCallback(BaseCallbackHandler):
       1. msg.usage_metadata  — langchain-core >= 0.2 standard field
       2. msg.response_metadata["usage"]  — Anthropic provider-specific fallback
     """
+
+    def __init__(self, model: str = ""):
+        super().__init__()
+        self.model = model
 
     def on_llm_end(self, response: LLMResult, **kwargs) -> None:
         for generations in response.generations:
@@ -96,6 +135,7 @@ class TokenTrackingCallback(BaseCallbackHandler):
                     track_usage(
                         input_tokens=usage_meta.get("input_tokens", 0),
                         output_tokens=usage_meta.get("output_tokens", 0),
+                        model=self.model,
                     )
                     continue
 
@@ -106,4 +146,5 @@ class TokenTrackingCallback(BaseCallbackHandler):
                     track_usage(
                         input_tokens=usage.get("input_tokens", 0),
                         output_tokens=usage.get("output_tokens", 0),
+                        model=self.model,
                     )

@@ -2,6 +2,8 @@ from langchain_anthropic import ChatAnthropic
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.prompts import ChatPromptTemplate
 
+from metrics.token_tracker import TokenTrackingCallback
+
 from .base_agent import BaseAgent
 
 VISA_PROMPT = """You are a travel safety and visa expert. Based on current information, provide:
@@ -25,7 +27,12 @@ class VisaSafetyAgent(BaseAgent):
     description = "Checks visa requirements and safety advisories for the destination"
 
     def _setup(self):
-        self.llm = ChatAnthropic(model="claude-haiku-4-5-20251001", temperature=0)
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.visa_safety_agent_model
+        except Exception:
+            model = "claude-haiku-4-5-20251001"
+        self.llm = ChatAnthropic(model=model, temperature=0, callbacks=[TokenTrackingCallback(model=model)])
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", SYSTEM_MSG),
             ("human", VISA_PROMPT),

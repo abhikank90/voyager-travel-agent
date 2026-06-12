@@ -144,7 +144,12 @@ class FlightAgent(BaseAgent):
     description = "Searches flights and returns best options within budget"
 
     def _setup(self):
-        self.llm = ChatAnthropic(model="claude-haiku-4-5-20251001", temperature=0)
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.flight_agent_model
+        except Exception:
+            model = "claude-haiku-4-5-20251001"
+        self.llm = ChatAnthropic(model=model, temperature=0)
 
     async def _execute(self, state: dict) -> dict:
         intent = state.get("intent", {})

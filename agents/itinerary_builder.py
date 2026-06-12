@@ -39,8 +39,13 @@ class ItineraryBuilderAgent(BaseAgent):
     description = "Synthesizes all agent outputs into a complete day-by-day itinerary"
 
     def _setup(self):
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.itinerary_builder_model
+        except Exception:
+            model = "claude-sonnet-4-6"
         self.llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
+            model=model,
             temperature=0.4,
             max_tokens=4096,
         )

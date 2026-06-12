@@ -3,6 +3,8 @@ import os
 import httpx
 from langchain_anthropic import ChatAnthropic
 
+from metrics.token_tracker import TokenTrackingCallback
+
 from .base_agent import BaseAgent
 
 
@@ -54,7 +56,12 @@ class HotelAgent(BaseAgent):
     description = "Searches hotels within budget and preferred dates"
 
     def _setup(self):
-        self.llm = ChatAnthropic(model="claude-haiku-4-5-20251001", temperature=0)
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.hotel_agent_model
+        except Exception:
+            model = "claude-haiku-4-5-20251001"
+        self.llm = ChatAnthropic(model=model, temperature=0, callbacks=[TokenTrackingCallback(model=model)])
 
     async def _execute(self, state: dict) -> dict:
         intent = state.get("intent", {})

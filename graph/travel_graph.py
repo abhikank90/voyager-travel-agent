@@ -400,7 +400,7 @@ async def run_collaborative_travel_query(
     config = get_api_config()
     usage = get_current()
     estimated_cost = (
-        compute_cost(usage.input_tokens, usage.output_tokens, config.llm)
+        compute_cost(usage.input_tokens, usage.output_tokens, config.llm.default_model)
         if usage else 0.0
     )
 

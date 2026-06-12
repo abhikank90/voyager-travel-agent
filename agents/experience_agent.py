@@ -30,7 +30,12 @@ class ExperienceAgent(BaseAgent):
     description = "Recommends experiences and activities using RAG over destination knowledge base"
 
     def _setup(self):
-        self.llm = ChatAnthropic(model="claude-sonnet-4-6", temperature=0.3, callbacks=[TokenTrackingCallback()])
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.experience_agent_model
+        except Exception:
+            model = "claude-sonnet-4-6"
+        self.llm = ChatAnthropic(model=model, temperature=0.3, callbacks=[TokenTrackingCallback(model=model)])
         self.prompt = ChatPromptTemplate.from_messages([
             ("system", "You are a travel experiences expert. Return only valid JSON."),
             ("human", EXPERIENCE_PROMPT),

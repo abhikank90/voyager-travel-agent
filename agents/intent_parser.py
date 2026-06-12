@@ -41,10 +41,15 @@ class IntentParserAgent(BaseAgent):
     description = "Parses raw user query into structured TravelIntent"
 
     def _setup(self):
+        try:
+            from config import get_api_config
+            model = get_api_config().llm.intent_parser_model
+        except Exception:
+            model = "claude-sonnet-4-6"
         self.llm = ChatAnthropic(
-            model="claude-sonnet-4-6",
+            model=model,
             temperature=0,
-            callbacks=[TokenTrackingCallback()],
+            callbacks=[TokenTrackingCallback(model=model)],
         ).with_structured_output(TravelIntent)
 
         self.prompt = ChatPromptTemplate.from_messages([

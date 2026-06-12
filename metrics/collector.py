@@ -92,6 +92,10 @@ def record_session(
         "round_1_conflict_count": r1_count,
         "round_1_conflict_types": [c.get("type") for c in round_1_conflicts],
         "round_1_conflict_severities": [c.get("severity") for c in round_1_conflicts],
+        "round_1_conflicts_evidence": [
+            {"type": c.get("type"), "severity": c.get("severity"), "data": c.get("data", {})}
+            for c in round_1_conflicts
+        ],
         "round_1_messages_sent": len(messages),
         "round_1_agents_targeted": sorted({m.get("to_agent") for m in messages if m.get("to_agent") != "all"}),
         "synergy_count": len(synergies),
