@@ -18,7 +18,10 @@ Two integration points:
 Pricing: MODEL_PRICING maps exact Anthropic model IDs to (input, output) rates in USD
 per million tokens. Unknown models log a warning and fall back to Sonnet rates.
 
-Sanity check: 1M input + 1M output on Haiku → $6.00; on Sonnet → $18.00.
+Session cost is computed via compute_session_cost(), which sums per-model costs using
+the exact rate for each model. Haiku tokens are never priced at Sonnet rates.
+
+Sanity check: 1M in + 1M out on Haiku ($6) plus 1M in + 1M out on Sonnet ($18) = $24.00.
 """
 
 from __future__ import annotations
@@ -61,6 +64,7 @@ class TokenUsage:
     input_tokens: int = 0
     output_tokens: int = 0
     models_used: dict = field(default_factory=dict)  # model_id → call_count
+    per_model: dict = field(default_factory=dict)    # model_id → {"input": int, "output": int}
 
     @property
     def total_tokens(self) -> int:
@@ -72,6 +76,7 @@ class TokenUsage:
             "output_tokens": self.output_tokens,
             "total_tokens": self.total_tokens,
             "models_used": dict(self.models_used),
+            "per_model": {m: dict(v) for m, v in self.per_model.items()},
         }
 
 
@@ -93,6 +98,9 @@ def track_usage(input_tokens: int, output_tokens: int, model: str = "") -> None:
         usage.output_tokens += output_tokens
         if model:
             usage.models_used[model] = usage.models_used.get(model, 0) + 1
+            pm = usage.per_model.setdefault(model, {"input": 0, "output": 0})
+            pm["input"] += input_tokens
+            pm["output"] += output_tokens
 
 
 def get_current() -> TokenUsage | None:
@@ -107,6 +115,24 @@ def compute_cost(input_tokens: int, output_tokens: int, model: str = "") -> floa
         input_tokens / 1_000_000 * in_rate + output_tokens / 1_000_000 * out_rate,
         6,
     )
+
+
+def compute_session_cost(usage: TokenUsage) -> float:
+    """Compute session cost using per-model pricing for accuracy.
+
+    When per_model breakdown is present each model's tokens are priced at its own
+    rate, so Haiku tokens are never charged at Sonnet rates. Falls back to Sonnet
+    rates applied to undifferentiated totals when no model tracking is available.
+    """
+    if usage.per_model:
+        return round(
+            sum(
+                compute_cost(m["input"], m["output"], model)
+                for model, m in usage.per_model.items()
+            ),
+            6,
+        )
+    return compute_cost(usage.input_tokens, usage.output_tokens)
 
 
 class TokenTrackingCallback(BaseCallbackHandler):

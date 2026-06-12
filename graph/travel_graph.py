@@ -369,9 +369,8 @@ async def run_collaborative_travel_query(
     """
     import uuid
 
-    from config import get_api_config
     from metrics.collector import record_session
-    from metrics.token_tracker import compute_cost, get_current, start_session
+    from metrics.token_tracker import compute_session_cost, get_current, start_session
 
     if session_id is None:
         session_id = str(uuid.uuid4())
@@ -397,12 +396,8 @@ async def run_collaborative_travel_query(
     final_state = await collaborative_travel_graph.ainvoke(initial_state)
     duration = round(time.perf_counter() - t0, 2)
 
-    config = get_api_config()
     usage = get_current()
-    estimated_cost = (
-        compute_cost(usage.input_tokens, usage.output_tokens, config.llm.default_model)
-        if usage else 0.0
-    )
+    estimated_cost = compute_session_cost(usage) if usage else 0.0
 
     if record_metrics:
         record_session(

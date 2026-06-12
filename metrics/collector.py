@@ -25,6 +25,14 @@ _METRICS_DIR = Path(__file__).parent
 _SESSIONS_FILE = _METRICS_DIR / "sessions.jsonl"
 _RESEARCH_AGENTS_COUNT = 5
 
+# Maps each typed conflict to the hub message that carries its evidence payload.
+# Each conflict type has exactly one corresponding message: (to_agent, message_type).
+_CONFLICT_TO_MSG: dict[str, tuple[str, str]] = {
+    "location_mismatch":         ("hotel",      "constraint"),
+    "timing_inefficiency":       ("flight",     "insight"),
+    "weather_activity_mismatch": ("experience", "constraint"),
+}
+
 
 def record_session(
     final_state: dict,
@@ -63,6 +71,18 @@ def record_session(
     naive_calls = _RESEARCH_AGENTS_COUNT * rounds_used
     savings_pct = round((1 - actual_calls / naive_calls) * 100) if naive_calls > 0 else 0
 
+    # ── Conflict evidence: join each conflict to its message payload ──────
+    # Round-1 hub messages carry the structured data (activity_locations,
+    # preferred_arrival, weather_concerns, etc.) that explain WHY each conflict fired.
+    # Conflict dicts from _identify_conflicts have no data field; we recover the
+    # payload here by matching conflict type → (to_agent, message_type).
+    r1_msg_data: dict[tuple[str, str], dict] = {}
+    for msg in messages:
+        if msg.get("round") == 1 and msg.get("from_agent") == "collaboration_hub":
+            key = (msg.get("to_agent", ""), msg.get("message_type", ""))
+            if key[0] and msg.get("data"):
+                r1_msg_data[key] = msg["data"]
+
     # ── Token usage ───────────────────────────────────────────────────────
     token_data: dict[str, Any] = {}
     if token_usage is not None:
@@ -71,6 +91,7 @@ def record_session(
             "output_tokens": token_usage.output_tokens,
             "total_tokens": token_usage.total_tokens,
             "estimated_cost_usd": estimated_cost_usd,
+            "per_model_tokens": {m: dict(v) for m, v in token_usage.per_model.items()},
         }
 
     # ── Per-round latencies ───────────────────────────────────────────────
@@ -93,7 +114,11 @@ def record_session(
         "round_1_conflict_types": [c.get("type") for c in round_1_conflicts],
         "round_1_conflict_severities": [c.get("severity") for c in round_1_conflicts],
         "round_1_conflicts_evidence": [
-            {"type": c.get("type"), "severity": c.get("severity"), "data": c.get("data", {})}
+            {
+                "type": c.get("type"),
+                "severity": c.get("severity"),
+                "data": r1_msg_data.get(_CONFLICT_TO_MSG.get(c.get("type", ""), ("", "")), {}),
+            }
             for c in round_1_conflicts
         ],
         "round_1_messages_sent": len(messages),
