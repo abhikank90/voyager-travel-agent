@@ -161,6 +161,10 @@ StateGraph(TravelState):
   END
 ```
 
+The round cap is structural, not a configurable constant: `research_round_1`,
+`research_round_2`, and `research_round_3` are distinct hard-wired nodes, so the
+refinement loop is bounded by the shape of the graph rather than by a counter.
+
 ### Conditional Routing
 
 ```python
@@ -220,6 +224,10 @@ class BaseAgent(ABC):
 - `FlightAgent` — prefers options arriving before `preferred_arrival` hour
 - `ExperienceAgent` — prepends weather/timing guidance to the LLM prompt via `location_focus`
 
+Across the 25-query benchmark, the agents re-run in a refinement round were the flight
+and hotel agents (the two implicated in every query's conflicts); the experience, weather,
+and visa agents stayed dormant unless directly targeted.
+
 ### Research Agents (Parallel Execution)
 
 #### 1. FlightAgent (`agents/flight_agent.py`)
@@ -231,6 +239,8 @@ class BaseAgent(ABC):
 - Flight offers search endpoint
 
 **Fallback**: Mock data (realistic prices/routes)
+
+**Model**: `claude-haiku-4-5` (retrieval-shaped task)
 
 **Output**: List of 3-5 flight options with:
 - Airline, price, departure/arrival times
@@ -247,6 +257,8 @@ class BaseAgent(ABC):
 
 **Fallback**: Mock data (realistic hotels)
 
+**Model**: `claude-haiku-4-5` (retrieval-shaped task)
+
 **Output**: List of 5 hotel options with:
 - Name, location, price per night
 - Rating, amenities
@@ -261,6 +273,8 @@ class BaseAgent(ABC):
 **Data Source**:
 - Claude Sonnet with RAG over `data/knowledge_base/destinations.json`
 - Contains curated experiences for Greece, Japan, France
+
+**Model**: `claude-sonnet-4-6` (reasoning + synthesis)
 
 **Output**: List of 5-10 experiences with:
 - Name, description, category
@@ -293,6 +307,8 @@ class BaseAgent(ABC):
 - DuckDuckGo search (free, no API key)
 - Claude Haiku for summarization
 
+**Model**: `claude-haiku-4-5` (summarization task)
+
 **Output**: Visa & safety info with:
 - Visa required (yes/no)
 - Safety level (1-5)
@@ -309,10 +325,15 @@ class BaseAgent(ABC):
 
 **Responsibilities**:
 1. Analyze all research agent outputs
-2. Identify conflicts (hotel location, flight timing, weather mismatches)
+2. Identify conflicts (hotel location, flight timing, weather mismatches) — deterministic, rule-based
 3. Detect synergies (beachfront hotel + beach activities)
-4. Generate targeted messages to agents
+4. Generate targeted messages to agents — templated, with structured data payloads
 5. Track conflict resolution progress
+
+Detection, routing, and the feedback messages themselves are all deterministic. The hub
+also makes one Claude call per round to produce a narrative analysis surfaced in the UI,
+but that narrative is deliberately ignored for routing — control flow depends only on the
+typed conflict objects, which keeps benchmarks reproducible and re-runs grounded.
 
 **Conflict Detection**:
 ```python
@@ -338,6 +359,8 @@ top_experiences = ["Santorini caldera", "Navagio Beach"]
 - `question`: Request for alternatives
 - `proposal`: Suggestion
 - `conflict`: Flag incompatibility
+
+**Model**: `claude-sonnet-4-6` (narrative analysis only; routing is rule-based)
 
 **Code Location**: `agents/collaboration_hub.py:30-380`
 
@@ -386,6 +409,8 @@ experience_url = config.experience.booking_url_template.format(
 # → "https://www.getyourguide.com/s/?q=Athens"
 ```
 
+**Model**: `claude-sonnet-4-6` (synthesis)
+
 **Output**: 3 `TripOption` objects with:
 - Full itinerary (day-by-day)
 - All booking URLs
@@ -427,6 +452,8 @@ experience_url = config.experience.booking_url_template.format(
 **Purpose**: Parse natural language query into structured `TravelIntent`.
 
 **Method**: Claude Sonnet with `with_structured_output(TravelIntent)`
+
+**Model**: `claude-sonnet-4-6`
 
 **Output**:
 ```python
@@ -494,13 +521,16 @@ url = config.flight.booking_url_template.format(
 
 **ExperienceAPIConfig**: Activity booking configuration
 
-**LLMConfig**:
+**LLMConfig**: Per-agent model selection, so each agent can run on the right
+tier. Model strings are exact Anthropic API IDs.
 - `api_key`: Anthropic API key (required)
-- `default_model`: claude-sonnet-4-5-20250929
-- `intent_parser_model`: Model for intent parsing
-- `collaboration_hub_model`: Model for collaboration
-- `option_generator_model`: Model for option generation
-- `quick_tasks_model`: claude-haiku (cheaper for simple tasks)
+- `intent_parser_model`: `claude-sonnet-4-6`
+- `experience_model`: `claude-sonnet-4-6`
+- `collaboration_hub_model`: `claude-sonnet-4-6`
+- `option_generator_model`: `claude-sonnet-4-6`
+- `itinerary_builder_model`: `claude-sonnet-4-6`
+- `flight_model` / `hotel_model` / `visa_safety_model`: `claude-haiku-4-5-20251001`
+  (cheaper tier for retrieval/summarization-shaped agents)
 
 ### Environment Variables
 
@@ -783,6 +813,11 @@ const [collaborationMessages, setCollaborationMessages] = useState<Collaboration
 
 ## Collaboration Examples
 
+> Across all three examples, the hub routes a constraint to a **single** agent per
+> conflict type. Bidirectional messaging (nudging both sides of a conflict) causes
+> oscillation — each round pushes the other back — so each conflict type names one
+> agent responsible for resolving it.
+
 ### Example 1: Hotel-Experience Location Conflict
 
 **Round 1**:
@@ -805,15 +840,10 @@ Message generated (hotel only — experiences are the "truth"; hotel adapts):
 
 **Round 2**:
 ```
-Hotel Agent → Proposes 2 options:
-  A) Santorini beachfront resort ($85/night)
-  B) Athens hotel + nearby experiences
+Hotel Agent → re-runs, prefers an affordable Santorini candidate:
+  Santorini beachfront resort ($85/night)
 
-Experience Agent → Finds Athens alternatives:
-  • Acropolis tour
-  • Ancient Agora
-  • Plaka food tour
-  • Cape Sounion day trip
+(Experience, flight, weather, and visa agents are not targeted — their Round-1 outputs stand.)
 ```
 
 **Final Options**:
@@ -841,16 +871,18 @@ Experience Agent → Suggests "Morning Acropolis tour" (Day 1)
 ```
 Conflict detected: Late arrival wastes first day
 
-Message to Flight Agent:
+Message to Flight Agent (flight only — the implicated agent):
    "Arrival at 6pm means Day 1 is lost. Look for earlier flights?"
-   Data: { preferred_arrival: "before 14:00", flexible_date: true }
+   Data: { preferred_arrival: "before 14:00" }
 ```
 
 **Round 2**:
 ```
-Flight Agent → Found earlier option:
+Flight Agent → re-runs, prefers an option satisfying the arrival window:
   • JFK→ATH departing 5:00pm, arriving 11:00am+1 (+$80)
   • Allows full afternoon on Day 1
+
+(Other agents are not targeted — their Round-1 outputs stand.)
 ```
 
 **Final Options**:
@@ -872,31 +904,27 @@ Experience Agent → Suggests beach + hiking activities
 ```
 Conflict detected: Extreme heat + outdoor activities
 
-Messages:
-1. To Experience Agent:
+Message to Experience Agent (experience only — the implicated agent):
    "High temperatures (38°C). Prioritize indoor/evening activities?"
    Data: { suggested_times: ["morning", "evening"], indoor: true }
-
-2. To Flight Agent:
-   "Could we shift dates to avoid heatwave?"
-   Data: { alternative_dates: ["July 1-7", "July 22-28"] }
 ```
 
 **Round 2**:
 ```
-Flight Agent → July 8 flight available (-5°C average temp)
-Experience Agent → Adds evening/indoor alternatives:
+Experience Agent → re-runs with weather guidance, adds evening/indoor alternatives:
   • Sunset cruises
   • Morning beach visits
   • Indoor museums
   • Evening taverna tours
+
+(Weather is a read-only source and is not asked to re-run; other agents are not targeted.)
 ```
 
 **Final Options**:
 ```
-Budget: Keep July 15, all evening activities
-Balanced: July 8 flights (+$50), mixed schedule
-Premium: July 8 + AC-upgraded hotels
+Budget: All evening/indoor activities
+Balanced: Mixed schedule weighted to mornings and evenings
+Premium: AC-upgraded hotels + indoor experiences
 ```
 
 ---
@@ -937,6 +965,10 @@ async def run(self, state: dict) -> dict:
 - Token usage per Claude call
 - End-to-end latency (per round + total)
 
+In a full-mode trace, the `research_round_2` / `collaboration_hub_2` nodes are present
+and the conflicts array is populated; in a baseline trace the run stops after the first
+hub. This contrast is the clearest visual evidence of selective re-execution.
+
 **Code Location**: `agents/base_agent.py:25`, `graph/travel_graph.py:321-345`
 
 ---
@@ -969,19 +1001,19 @@ Complete trace of a single user query:
    • Visa/Safety Agent → { visa_required: false, safety_level: 1 }
 
 5. Collaboration Hub 1
-   Analysis: "Hotel in Athens, experiences in Santorini → 3hr travel"
-   Messages: [
-     {to: "hotel", content: "Find Santorini hotels?"},
-     {to: "experience", content: "Find Athens activities?"}
+   Analysis: "Hotel on beachfront, top experiences cluster inland → location mismatch"
+   Message (hotel only — experiences are the source of truth, hotel adapts): [
+     {to: "hotel", content: "Find hotels near the top activities",
+      data: {activity_locations: ["Oia, Santorini", ...]}}
    ]
    Conflicts: [{ type: "location_mismatch", severity: "medium" }]
 
-6. Round 2: Refinement
-   • Hotel Agent → [5 Santorini hotels + 3 Athens hotels]
-   • Experience Agent → [5 Athens experiences + 3 Santorini experiences]
+6. Round 2: Selective Refinement
+   • Hotel Agent → re-runs, prefers an affordable candidate near the activities
+   • (Flight, experience, weather, visa agents skipped — Round-1 outputs stand)
 
 7. Collaboration Hub 2
-   Analysis: "Conflicts resolved, have options for both locations"
+   Analysis: "location_mismatch no longer fires; conflict resolved"
    Conflicts: []
 
 8. Budget Guardrail
@@ -1209,6 +1241,18 @@ Injected into ECS task definition at runtime.
 
 **Critical**: Budget guardrail can't run until all agents finish, so parallelism is mandatory for acceptable UX.
 
+### 6. Why deterministic conflict detection?
+
+Conflict detection stays rule-based — each detector is a cheap predicate over typed agent
+outputs — because typed conflicts are the contract that targeted routing and selective
+re-execution depend on, and because deterministic detection makes benchmarks reproducible.
+A controlled evaluation (`scripts/eval_hybrid_detection.py`) measured an LLM detector
+against the rules: at temperature 0 it was fully self-consistent and caught conflict types
+the rules don't enumerate, but it also asserted an unverifiable budget violation on a clean
+control case. The conclusion shapes the roadmap — let the LLM *propose* candidate conflicts
+and let deterministic rules *validate* before anything triggers a re-run, since in this
+pattern a detection event spends money.
+
 ---
 
 ## Testing
@@ -1230,7 +1274,7 @@ def test_intent_parser(mock_anthropic):
     assert result["intent"]["destination"] == "Greece"
 ```
 
-**Run**: `pytest tests/unit -v`  (104 tests, ~5s, no API keys needed)
+**Run**: `pytest tests/unit -v`  (116 tests, ~5s, no API keys needed)
 
 ### Integration Tests (`tests/integration/`)
 
@@ -1263,7 +1307,8 @@ async def test_full_collaborative_flow():
 The benchmark runs 25 diverse trip queries (beach, city, adventure, budget, family) through the
 complete collaborative graph in two modes — *full* (with hub routing and refinement rounds) and
 *baseline* (Round 1 → audit → options, hub routing disabled). Both modes run identical conflict
-detectors at audit time, so final-conflict counts are directly comparable.
+detectors at audit time, and both see identical simulated inventory per query, so final-conflict
+counts are directly comparable and isolated from inventory drift.
 
 Reported metrics measure the **coordination layer**, not absolute travel quality:
 
@@ -1272,6 +1317,22 @@ Reported metrics measure the **coordination layer**, not absolute travel quality
 | Conflict resolution rate | % of Round-1 conflicts eliminated by selective refinement |
 | Cost overhead | Extra API spend added by hub + refinement, vs. baseline |
 | Agent-call savings | Reduction in research-agent invocations vs. naive full re-run |
+
+Canonical results (25 queries × 2 modes, June 2026, tag `v1.0-infoq`): resolution rate 97%
+(2.04 → 0.08 final conflicts per query, paired); cost overhead +1.8% (+$0.0032/query mean
+paired delta, median +$0.0026, σ $0.0086); end-to-end latency +2.7% (+6.0s mean paired,
+median +4.3s, σ 11.9s); Round 3 needed on 1/25 queries; 30% agent-call savings vs. full
+re-run. Cost and latency are reported as **paired per-query deltas** because per-query output
+variance dominates the overhead — the cost overhead's standard deviation is roughly three
+times its mean, so it is statistically indistinguishable from generation-length noise at the
+per-query level and visible only in aggregate.
+
+### Models
+
+Agents run on a tiered selection (per `config/api_config.py`): `claude-sonnet-4-6` for the
+reasoning- and synthesis-heavy nodes (intent parser, experience, collaboration hub,
+option generator, itinerary builder) and `claude-haiku-4-5-20251001` for the
+retrieval/summarization-shaped agents (flight, hotel, visa/safety).
 
 ### Controlled workload: simulated inventory
 
@@ -1286,7 +1347,10 @@ produce cross-agent conflicts after Round 1:
 - July weather flags heat advisories for outdoor activities, triggering `weather_activity_mismatch`.
 
 This design makes conflict scenarios **reproducible and measurable**: every query in the benchmark
-starts in conflict, so resolution rate and coordination cost can be computed precisely.
+starts in conflict, so resolution rate and coordination cost can be computed precisely. Using the
+same inventory for both modes is deliberate — it lets baseline and full runs see an identical world
+per query and isolates the coordination pattern. Agent *selections* remain stochastic
+(temperature 0.3), so Round-1 conflict *counts* vary slightly across runs even on fixed inventory.
 
 **What is and is not real:**
 
@@ -1300,14 +1364,16 @@ starts in conflict, so resolution rate and coordination cost can be computed pre
 Costs are estimated from per-model token usage at published Anthropic rates (June 2026):
 `claude-sonnet-4-6` at $3/$15 per MTok (input/output), `claude-haiku-4-5-20251001` at $1/$5.
 Session estimates are computed by `metrics.token_tracker.compute_session_cost()`, which sums
-per-model costs so Haiku tokens are never priced at Sonnet rates. Published benchmark numbers
-have been cross-checked against billed API usage in the Anthropic Console.
+per-model costs so Haiku tokens are never priced at Sonnet rates and unattributed tokens are
+never silently dropped (a conservation regression test guards this). Estimated costs were
+cross-checked against billed API usage for the benchmark window and agreed within 1%.
 
 ### Planned future work
 
 Record/replay of real Amadeus and OpenWeather inventory to measure resolution rate and cost
 overhead against non-guaranteed satisfiability — the regime where the coordination pattern's
-practical limits become visible.
+practical limits become visible — captured once into fixtures and replayed deterministically to
+preserve reproducibility.
 
 ---
 
@@ -1348,8 +1414,8 @@ Voyager v1 is a production-ready collaborative multi-agent travel planning syste
 **Scales to production** on AWS Fargate with full observability
 
 **Tech Stack**: LangGraph + Claude + React + FastAPI + AWS
-**Cost**: ~$0.10 per query (Anthropic API)
-**Latency**: 60-120 seconds (3-round collaboration)
+**Cost**: ~$0.175 per query (Anthropic API, full mode)
+**Latency**: ~220 seconds (3-round collaboration)
 **Reliability**: Mock fallbacks ensure uptime without external APIs
 
 ---
