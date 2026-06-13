@@ -2,16 +2,16 @@
 
 [![CI](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml)
 
-**A coordination pattern for multi-agent LLM systems: typed conflict detection, targeted peer feedback, and selective re-execution.** Voyager demonstrates the pattern on a real problem — multi-agent travel planning — where parallel specialist agents produce locally optimal but globally incoherent results, and fixes them for ~2% additional cost.
+**A coordination pattern for multi-agent LLM systems: typed conflict detection, targeted peer feedback, and selective re-execution.** Voyager demonstrates the pattern on a real problem — multi-agent travel planning — where parallel specialist agents produce locally optimal but globally incoherent results, and resolves them for a cost overhead that sits within ordinary per-query output variance.
 
 | Metric (25-query benchmark, 2 modes) | Without hub (baseline) | With hub (full) |
 |---|---|---|
-| Cross-agent conflicts surviving into final output | 2.0 / query | **0.0 / query** |
-| Cost per query | $0.129 | $0.131 (**+2.1%**) |
-| End-to-end latency | 163.3s | 167.3s (**+2.4%**) |
+| Cross-agent conflicts surviving into final output | 2.04 / query | **0.08 / query** (97% resolved) |
+| Cost per query | $0.1740 | $0.1772 (**+1.8%**) |
+| End-to-end latency | 219.5s | 225.5s (**+2.7%**) |
 | Agent calls vs. naive "re-run everything" | — | **−30%** |
 
-*Benchmark methodology, caveats, and reproduction steps in [Benchmarks](#benchmarks).*
+*Estimated costs were validated against billed API usage for the benchmark window (agreement within 1%). The cost overhead is statistically indistinguishable from per-query output variance — see [Benchmarks](#benchmarks) for methodology, paired statistics, and caveats.*
 
 ---
 
@@ -33,7 +33,7 @@ In travel planning, that looks like:
 - The flight agent picks the cheapest fare — landing at 22:30, wasting the first day of a 7-day trip.
 - The experience agent plans beach days — during the week the weather agent flagged a heat wave.
 
-Each output is individually defensible. The combination is incoherent. In our benchmark, **every query** produced at least one cross-agent conflict after the parallel round (2.0 on average) — and in a single-pass architecture, all of them ship to the user.
+Each output is individually defensible. The combination is incoherent. In our benchmark, every query produced at least one cross-agent conflict after the parallel round (2.0 on average) — and in a single-pass architecture, all of them ship to the user.
 
 The well-documented fixes are expensive or imprecise:
 
@@ -66,13 +66,15 @@ Voyager inserts a **Collaboration Hub** between research rounds. It does three t
                                  (hub re-checks; ≤1 more round)
 ```
 
-**1. Typed conflict detection (deterministic by design).** The hub checks the merged state against a registry of *typed* conflict rules — `location_mismatch`, `timing_inefficiency`, `weather_activity_mismatch` — each a cheap, deterministic predicate over structured agent outputs. Detection is intentionally rule-based rather than LLM-based: typed conflicts are what make the next two steps possible. You can only route a constraint *to the hotel agent specifically* if you know *structurally* that the conflict is a hotel-location/activity-location mismatch. (The hub does call Claude once per round — to generate a narrative analysis surfaced in the UI; that narrative never drives routing.)
+**1. Typed conflict detection (deterministic by design).** The hub checks the merged state against a registry of *typed* conflict rules — `location_mismatch`, `timing_inefficiency`, `weather_activity_mismatch` — each a cheap, deterministic predicate over structured agent outputs. Detection is intentionally rule-based rather than LLM-based: typed conflicts are what make the next two steps possible. You can only route a constraint *to the hotel agent specifically* if you know *structurally* that the conflict is a hotel-location/activity-location mismatch. (The hub does call Claude once per round — to generate a narrative analysis surfaced in the UI; that narrative is deliberately ignored for routing.)
 
-**2. Targeted constraint routing.** Each detected conflict generates a message addressed to the *one agent best positioned to resolve it*, carrying structured data, not prose: the hotel agent receives `{activity_locations: ["Oia, Santorini", ...]}`; the flight agent receives `{preferred_arrival: "before 14:00"}`. This is the inversion of the usual coordinator pattern — instead of routing a *user request* to specialists at the start, the hub routes *inter-agent critique* to specialists mid-execution.
+**2. Targeted constraint routing.** Each detected conflict generates a message addressed to the *one agent best positioned to resolve it*, carrying structured data, not prose: the hotel agent receives `{activity_locations: ["Oia, Santorini", ...]}`; the flight agent receives `{preferred_arrival: "before 14:00"}`. This is the inversion of the usual coordinator pattern — instead of routing a *user request* to specialists at the start, the hub routes *inter-agent critique* to specialists mid-execution. Detection, routing, and the feedback messages themselves are all deterministic; the only LLM work in a refinement round happens *inside* the agents that re-run.
 
-**3. Selective re-execution.** Only agents that received messages re-run. Each rerunnable agent reads its inbox via `BaseAgent._messages_for_me()` and applies constraints at *selection time* — the hotel agent prefers affordable candidates matching the suggested area; the flight agent prefers fares satisfying the arrival window — falling back gracefully when no candidate qualifies. Agents that received nothing are skipped, and their Round-1 outputs stand.
+**3. Selective re-execution.** Only agents that received messages re-run. Each rerunnable agent reads its inbox via `BaseAgent._messages_for_me()` and applies constraints at *selection time* — the hotel agent prefers affordable candidates matching the suggested area; the flight agent prefers fares satisfying the arrival window — falling back gracefully when no candidate qualifies. Agents that received nothing are skipped, and their Round-1 outputs stand. Across the benchmark, Round 2 re-ran the flight and hotel agents (the two implicated in every query's conflicts) while the experience, weather, and visa agents stayed dormant.
 
 A **final conflict audit** (same deterministic detectors, no routing) runs after the last round, so the system reports honestly which conflicts were resolved and which persist — persisting conflicts are surfaced, not hidden.
+
+The round cap is the **shape of the graph**, not a configurable constant: `research_round_1`, `research_round_2`, and `research_round_3` are distinct hard-wired nodes, so the loop is bounded by topology rather than by a counter that a bug could mismanage.
 
 ### Why not just one big agent?
 
@@ -80,35 +82,38 @@ A single agent with all five specialties in one prompt avoids coordination entir
 
 ## Benchmarks
 
-**Setup:** 25 diverse trip queries (beach, city, adventure, budget, family) × 2 modes. *Full* runs the complete graph; *baseline* skips the hub's routing and refinement rounds (Round 1 → audit → options). Both modes run identical detectors at audit time, so final-conflict counts are directly comparable. Reproduce with:
+**Setup:** 25 diverse trip queries (beach, city, adventure, budget, family) × 2 modes. *Full* runs the complete graph; *baseline* skips the hub's routing and refinement rounds (Round 1 → audit → options). Both modes run identical detectors at audit time, so final-conflict counts are directly comparable. Both modes also see identical simulated inventory per query, which isolates the coordination pattern from inventory drift. Reproduce against tag `v1.0-infoq` with:
 
 ```bash
 python3 scripts/benchmark_queries.py --mode compare
 python3 scripts/benchmark_queries.py --summary
 ```
 
-**Results (50 sessions, June 2026):**
+**Results (50 sessions, June 2026; `claude-sonnet-4-6` + `claude-haiku-4-5`):**
 
 | | Baseline | Full |
 |---|---|---|
 | Queries with ≥1 Round-1 conflict | 25/25 | 25/25 |
 | Avg Round-1 conflicts / query | 2.0 | 2.0 |
-| Avg conflicts in final output | 2.0 | **0.0** (99% resolved) |
+| Avg conflicts in final output | 2.04 | **0.08** (97% resolved) |
 | Queries needing Round 2 | — | 25/25 |
 | Queries needing Round 3 | — | 1/25 |
+| Avg agents re-run per refinement | — | 2.1 (of 5) |
 | Agent-call savings vs. full re-run | — | 30% |
-| Avg cost / query | $0.1286 | $0.1313 |
-| Avg latency / query | 163.3s | 167.3s |
+| Avg cost / query | $0.1740 | $0.1772 (**+1.8%**) |
+| Avg latency / query | 219.5s | 225.5s (**+2.7%**) |
+
+Reported as paired per-query deltas: cost +$0.0032/query mean (median +$0.0026, σ $0.0086); latency +6.0s mean (median +4.3s, σ 11.9s). The cost overhead's standard deviation is roughly three times its mean — the coordination cost is statistically indistinguishable from ordinary generation-length noise at the per-query level, visible only in aggregate. Estimated costs (summed from per-model token usage at published rates) matched billed API usage for the benchmark window within 1%.
 
 The one unresolved conflict was a `weather_activity_mismatch` on a query whose stated interests *were* the flagged outdoor activities — the advisory competes with user preferences rather than overriding them, and the system reports the tension instead of silently dropping it.
 
-**Read these numbers carefully — three caveats:**
+**Three caveats:**
 
-1. **Conflict incidence is a property of the data sources, not the world.** Benchmarks ran in mock mode (deterministic fixtures for flights/hotels/weather; all agent reasoning, conflict detection, routing, and re-execution live on Claude). The fixtures start every query in conflict — that's what makes resolution measurable and reproducible. The 100% incidence describes this test setup, not real-world travel workloads.
-2. **Resolution rate measures coordination mechanics given satisfiable data.** The fixture inventory always contains a qualifying option. With real inventory, satisfiability isn't guaranteed — the pattern routes feedback to the right agent; it cannot conjure a hotel that doesn't exist. Claim: *given a satisfiable option space, the coordination layer finds it within ≤3 rounds 99% of the time.*
-3. **Selective re-execution saves cost, not latency.** Rounds run under `asyncio.gather`, so duration is bounded by the slowest member, not the count — Round 2 (fewer agents, 18.0s) actually ran *longer* than Round 1 (14.1s) because the rerun set includes the LLM-heavy experience agent. The −30% is in agent invocations (and therefore API cost), which grows in importance as agents get heavier. The +2.1% cost delta is partly an artifact of cheap mock agents; the 30% call reduction is the number that transfers.
+1. **Conflict incidence is a property of the workload, not the world.** Benchmarks run against simulated flight/hotel/weather inventory (deterministic fixtures; all agent reasoning, conflict detection, routing, and re-execution are real Claude calls). The fixtures are constructed so that locally-optimal agent choices start every query in conflict — that's what makes resolution measurable and reproducible, and what lets baseline and full modes see an identical world per query. The 100% incidence describes this controlled setup, not real-world travel workloads. Agent *selections* remain stochastic (temperature 0.3), so Round-1 conflict counts vary slightly run to run.
+2. **Resolution rate measures coordination mechanics given satisfiable data.** The fixture inventory always contains a qualifying option. With real inventory, satisfiability isn't guaranteed — the pattern routes feedback to the right agent; it cannot conjure a hotel that doesn't exist. Claim: *given a satisfiable option space, the coordination layer resolves 97% of conflicts within ≤3 rounds.*
+3. **Selective re-execution saves cost, not latency.** Rounds run under `asyncio.gather`, so duration is bounded by the slowest member, not the count. The end-to-end latency delta (+6.0s, paired) and the standalone Round-2 wall time (16.2s) are separate measurements and should not be read as summing — per-query duration variance (σ 11.9s) is roughly twice the size of the overhead being measured. The durable win is in agent *invocations*: Round 2 re-runs ~2 of 5 agents instead of all of them, a 30% call reduction that grows in importance as agents get heavier and more expensive.
 
-Full details on workload design, inventory construction, cost estimation methodology, and planned live-inventory follow-up: **[ARCHITECTURE.md § Benchmark Methodology](ARCHITECTURE.md#benchmark-methodology)**.
+Full details on workload design, inventory construction, cost estimation methodology, and planned live-inventory follow-up: **[ARCHITECTURE.md & Benchmark Methodology](ARCHITECTURE.md#benchmark-methodology)**.
 
 ## Example: Location Conflict, End to End
 
@@ -142,7 +147,7 @@ A real trace from the benchmark (Greece, $2,000, beaches and local food):
 
 - **Backend:** Python 3.11+, FastAPI, LangGraph state machine (`graph/travel_graph.py`) — nodes: `personalisation → intent_parser → research_round_1 → collaboration_hub_1 → [research_round_2 → collaboration_hub_2 → research_round_3] → final_conflict_audit → budget_guardrail → option_generator`, with conditional edges short-circuiting refinement when no conflicts fire.
 - **Agents (11):** five parallel research agents (flight, hotel, experience, weather, visa/safety), the Collaboration Hub, a budget guardrail (hard correctness gate, ≤2 retries), option generator, personalisation, intent parser, itinerary builder. All share a typed `TravelState` (`graph/state.py`).
-- **AI:** Anthropic Claude (Sonnet for synthesis, Haiku for parsing).
+- **AI:** Anthropic Claude — `claude-sonnet-4-6` for synthesis and hub/option generation, `claude-haiku-4-5` for the flight, hotel, and visa/safety research agents. Per-agent model selection lives in `config/api_config.py`.
 - **Frontend:** React 18 + TypeScript + Vite + Tailwind; live collaboration feed renders hub messages and per-round agent activity over WebSocket.
 - **Infrastructure:** AWS (ECS Fargate, DynamoDB, SQS, ALB); LangSmith for observability.
 - **External data:** real APIs when keys are present, deterministic mock fallbacks otherwise — see [API_REQUIREMENTS.md](API_REQUIREMENTS.md).
@@ -161,17 +166,17 @@ cd frontend && npm ci && npm run dev   # frontend
 Full setup (Docker, AWS deployment, LangSmith): **[GETTING_STARTED.md](GETTING_STARTED.md)**.
 
 ```bash
-# Run the test suite (104 unit tests)
+# Run the test suite (116 unit tests)
 python3 -m pytest tests/unit -q
 
 # Run the benchmark yourself
-python3 scripts/benchmark_queries.py --limit 3      # smoke test (~$0.40)
-python3 scripts/benchmark_queries.py --mode compare # full 50-session benchmark (~$6.50)
+python3 scripts/benchmark_queries.py --limit 3      # smoke test (~$0.50)
+python3 scripts/benchmark_queries.py --mode compare # full 50-session benchmark (~$9)
 ```
 
 ## Design Decisions
 
-**Deterministic detection, LLM reasoning.** Claude does what it's good at — parsing intent, generating experiences, synthesizing options, narrating analysis. Conflict detection stays rule-based because typed conflicts are the contract that targeted routing and selective re-execution depend on, and because deterministic detection makes benchmarks reproducible. The detector registry is a pluggable seam: an LLM-augmented detector (Claude proposes candidate conflicts; rules validate before routing) is the natural extension — see roadmap.
+**Deterministic detection, LLM reasoning.** Claude does what it's good at — parsing intent, generating experiences, synthesizing options, narrating analysis. Conflict detection stays rule-based because typed conflicts are the contract that targeted routing and selective re-execution depend on, and because deterministic detection makes benchmarks reproducible. A controlled evaluation (`scripts/eval_hybrid_detection.py`) measured an LLM detector against the rules on the same states: at temperature 0 it was fully self-consistent and caught conflict types the rules don't enumerate, but it also asserted an unverifiable budget violation on a clean control case. The takeaway shapes the roadmap — let the LLM *propose* candidate conflicts and let deterministic rules *validate* before anything triggers a re-run, since in this pattern a detection event spends money. Put another way: the LLM is allowed to be curious, the rules are allowed to be certain, and only certainty is allowed to spend money.
 
 **One resolution direction per conflict type.** Bidirectional messages ("hotel, move near the activities" + "experiences, find some near the hotel") cause oscillation. Each conflict type names a single agent responsible for resolving it.
 
@@ -183,14 +188,14 @@ python3 scripts/benchmark_queries.py --mode compare # full 50-session benchmark 
 
 ## Limitations & Roadmap
 
-Known limitations: resolution depends on a satisfiable option space (the pattern routes feedback; it can't create inventory); conflict coverage is currently three typed rules; benchmark environmental data is fixture-based; per-type resolution varies by design (preference-competing conflicts persist and are reported).
+Known limitations: resolution depends on a satisfiable option space (the pattern routes feedback; it can't create inventory); conflict coverage is currently three typed rules; benchmark inventory is fixture-based; per-type resolution varies by design (preference-competing conflicts persist and are reported).
 
 Roadmap:
 
-- **LLM-augmented conflict detection** — Claude proposes candidate conflicts beyond the typed registry; deterministic rules validate before routing (keeps the audit stable).
-- **Live-API benchmark appendix** — Amadeus + OpenWeather test tiers, measuring resolution under non-guaranteed satisfiability.
+- **LLM-augmented conflict detection** — Claude proposes candidate conflicts beyond the typed registry; deterministic rules validate before routing (keeps the audit stable and re-runs grounded).
+- **Live-inventory validation via record/replay** — capture real Amadeus/OpenWeather responses into fixtures and replay them deterministically, measuring resolution under real-world (non-guaranteed) satisfiability without sacrificing reproducibility.
 - **Return-leg flight modeling** — enables the timing rule for departure legs that genuinely waste trip days.
-- **Conflict-churn metrics** — track when one agent's re-run introduces *new* conflicts (observed with weather-driven experience regeneration), quantifying convergence behavior across rounds.
+- **Conflict-churn metrics** — track when one agent's re-run introduces *new* conflicts, quantifying convergence behavior across rounds.
 - **Pattern extraction** — the hub, message protocol, and selective re-execution as a reusable LangGraph library independent of the travel domain.
 
 ## Documentation
@@ -198,7 +203,7 @@ Roadmap:
 📚 **Complete documentation for this project:**
 
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** - Installation, setup, and quick start guide
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed component reference: all 11 agents, state schema, API endpoints, frontend
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed component reference: all 11 agents, state schema, API endpoints, frontend, benchmark methodology
 - **[API_REQUIREMENTS.md](API_REQUIREMENTS.md)** - External API requirements, keys, and mock fallbacks
 - **[TESTING.md](TESTING.md)** - Comprehensive testing guide with coverage targets
 - **[CLAUDE.md](CLAUDE.md)** - Development guidance for Claude Code and contributors
@@ -206,7 +211,3 @@ Roadmap:
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-
-
-
