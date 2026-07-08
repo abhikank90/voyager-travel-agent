@@ -1,4 +1,6 @@
-# Voyager — Collaborative Multi-Agent Refinement
+# Voyager: Targeted Peer Feedback for Multi-Agent Conflict Resolution
+
+[![DOI](https://zenodo.org/badge/1240210492.svg)](https://doi.org/10.5281/zenodo.21269752)
 
 [![CI](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml)
 
