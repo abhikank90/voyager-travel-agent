@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+title: "Voyager: Targeted Peer Feedback for Multi-Agent Conflict Resolution"
+message: "If you use this software, please cite it using these metadata."
+type: software
+authors:
+  - given-names: Abhishek Reddy
+    family-names: Kankanala
+    orcid: https://orcid.org/0009-0007-1951-8431
+repository-code: "https://github.com/abhikank90/voyager-travel-agent"
+license: MIT
