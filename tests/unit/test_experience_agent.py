@@ -204,3 +204,27 @@ async def test_geocode_skips_without_api_key(monkeypatch):
     exps = [{"name": "Oia", "location": "Oia, Santorini"}]
     await agent._geocode_experiences(exps)
     assert "latitude" not in exps[0]
+
+
+@pytest.mark.asyncio
+async def test_execute_skips_geocode_in_mock_mode(monkeypatch):
+    """Mock mode must stay offline and deterministic: geocoding would inject
+    real (or wrong) coordinates into the centroid, silently switching hotel
+    selection from the always-satisfiable string-hint path to distance matching."""
+    from config.settings import reload_settings
+
+    monkeypatch.setenv("VOYAGER_INVENTORY_MODE", "mock")
+    reload_settings()
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "test-key")
+
+    class _Boom:
+        def __init__(self, *a, **k):
+            raise AssertionError("should not geocode in mock mode")
+
+    monkeypatch.setattr("agents.experience_agent.httpx.AsyncClient", _Boom)
+
+    agent = _make_agent_with_mock_llm()
+    result = await agent._execute({"intent": INTENT_BASE})
+    for exp in result.get("experiences", []):
+        assert "latitude" not in exp, "mock experiences must not be geocoded"
+        assert "longitude" not in exp

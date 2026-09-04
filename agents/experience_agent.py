@@ -115,9 +115,15 @@ class ExperienceAgent(BaseAgent):
 
         # Attach real coordinates to each experience from its `location` string
         # so the hub can emit a non-null activity_centroid (typed constraint) and
-        # the hotel agent can distance-match against real inventory. Falls back
-        # to the destination's own location if an individual spot can't resolve.
-        await self._geocode_experiences(experiences)
+        # the hotel agent can distance-match against real inventory.
+        #
+        # Live modes ONLY (capture/replay): in mock mode we stay fully offline
+        # and deterministic — geocoding would leak real-world coordinates (and
+        # garbage like "City Center" → Newport News, VA) into the centroid,
+        # switching mock hotel selection from the always-satisfiable string hint
+        # path to distance matching, which mock hotels can't satisfy.
+        if self._inventory_mode() in ("capture", "replay"):
+            await self._geocode_experiences(experiences)
 
         if context:
             beaches = context.get("top_beaches", [])
@@ -132,6 +138,10 @@ class ExperienceAgent(BaseAgent):
             "top_restaurants": restaurants,
             "destination_context": context,
         }
+
+    def _inventory_mode(self) -> str:
+        from config.settings import get_settings
+        return get_settings().inventory_mode
 
     async def _geocode_experiences(self, experiences: list[dict]) -> None:
         """Mutate each experience to add ``latitude``/``longitude``.
