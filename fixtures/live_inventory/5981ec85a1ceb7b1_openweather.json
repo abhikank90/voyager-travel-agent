@@ -1,0 +1,8 @@
+{
+  "avg_temp_c": 25,
+  "avg_temp_f": 77,
+  "precipitation_mm": 30,
+  "sunshine_hours": 8,
+  "summary": "Warm summer weather expected.",
+  "source": "historical_average"
+}

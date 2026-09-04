@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp1fcc0",
+      "name": "Studio 6 Extended Stay Rochester Greece NY",
+      "price_per_night_usd": 66.96,
+      "total_usd": 937.5,
+      "rating": 7,
+      "amenities": [],
+      "location": "600 Center Place Drive, Greece, US (43.2102,-77.6727)",
+      "latitude": 43.21023,
+      "longitude": -77.672672
+    },
+    {
+      "hotel_id": "lp27616",
+      "name": "Motel 6 Rochester, NY - Airport",
+      "price_per_night_usd": 74.76,
+      "total_usd": 1046.69,
+      "rating": 5.6,
+      "amenities": [],
+      "location": "1273 Chili Avenue, Rochester, US (43.1381,-77.6688)",
+      "latitude": 43.138052,
+      "longitude": -77.668779
+    },
+    {
+      "hotel_id": "lp334e8",
+      "name": "Quality Inn Rochester West",
+      "price_per_night_usd": 78.85,
+      "total_usd": 1103.93,
+      "rating": 7,
+      "amenities": [],
+      "location": "1956 Lyell Avenue, Rochester, US (43.1653,-77.6795)",
+      "latitude": 43.165295,
+      "longitude": -77.679487
+    },
+    {
+      "hotel_id": "lp5e952",
+      "name": "Microtel Inn & Suites Chili/Rochester",
+      "price_per_night_usd": 90.17,
+      "total_usd": 1262.39,
+      "rating": 8,
+      "amenities": [],
+      "location": "3258 Chili Avenue, Chili Center, US (43.1045,-77.7539)",
+      "latitude": 43.104531,
+      "longitude": -77.753916
+    },
+    {
+      "hotel_id": "lp1c895",
+      "name": "Holiday Inn Express Rochester - University Area by IHG",
+      "price_per_night_usd": 92.01,
+      "total_usd": 1288.14,
+      "rating": 7.5,
+      "amenities": [],
+      "location": "717 East Henrietta Road, Rochester, US (43.1070,-77.6170)",
+      "latitude": 43.107034,
+      "longitude": -77.617048
+    }
+  ]
+}

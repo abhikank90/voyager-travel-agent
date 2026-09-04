@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp655de264",
+      "name": "La Suite Calypso",
+      "price_per_night_usd": 36.83,
+      "total_usd": 515.66,
+      "rating": 7.8,
+      "amenities": [],
+      "location": "Vila Baia - Urb. Jardim da Luz - Rua Jos\u00e9 Pedro das Lages - Lote 24 - R/C 0A - Praia da Luz - 8600-152 Lagos - Portugal, Luz, PT (37.0922,-8.7256)",
+      "latitude": 37.092177,
+      "longitude": -8.725631
+    },
+    {
+      "hotel_id": "lp1f7021",
+      "name": "Quinta do Mar - Country & Sea Village",
+      "price_per_night_usd": 52.18,
+      "total_usd": 730.47,
+      "rating": 8.1,
+      "amenities": [],
+      "location": "Cama da Vaca, Lote 4, Quinta do Mar da Luz, Luz, PT (37.0765,-8.7567)",
+      "latitude": 37.076512,
+      "longitude": -8.756691
+    },
+    {
+      "hotel_id": "lp656ab926",
+      "name": "Cantinho da Av\u00f3",
+      "price_per_night_usd": 61.69,
+      "total_usd": 863.61,
+      "rating": 8.7,
+      "amenities": [],
+      "location": "Travessa dos Moinhos 8, Vila do Bispo, PT (37.0837,-8.9102)",
+      "latitude": 37.083727,
+      "longitude": -8.910161
+    },
+    {
+      "hotel_id": "lp655d83fd",
+      "name": "Salema Eco Camp - Sustainable Camping & Glamping",
+      "price_per_night_usd": 65.05,
+      "total_usd": 910.71,
+      "rating": 8.4,
+      "amenities": [],
+      "location": "Quinta dos Carri\u00e7os, Salema, Salema, PT (37.0750,-8.8311)",
+      "latitude": 37.075031,
+      "longitude": -8.831079
+    },
+    {
+      "hotel_id": "lp656b8185",
+      "name": "PuraVida Divehouse",
+      "price_per_night_usd": 67.29,
+      "total_usd": 942.12,
+      "rating": 9.1,
+      "amenities": [],
+      "location": "Rua da Pedra Negra - Baleeira, Sagres, PT (37.0114,-8.9324)",
+      "latitude": 37.011416,
+      "longitude": -8.932376
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 393.0,
+      "airline": "Icelandair",
+      "departure": "2026-12-02 19:25",
+      "arrival": "2026-12-03 13:40",
+      "stops": 1,
+      "duration": 735,
+      "duration_minutes": 735
+    },
+    {
+      "price_usd": 519.0,
+      "airline": "Tap Air Portugal",
+      "departure": "2026-12-02 22:00",
+      "arrival": "2026-12-03 17:15",
+      "stops": 1,
+      "duration": 795,
+      "duration_minutes": 795
+    },
+    {
+      "price_usd": 521.0,
+      "airline": "Air Europa",
+      "departure": "2026-12-02 22:05",
+      "arrival": "2026-12-03 16:40",
+      "stops": 1,
+      "duration": 755,
+      "duration_minutes": 755
+    }
+  ]
+}

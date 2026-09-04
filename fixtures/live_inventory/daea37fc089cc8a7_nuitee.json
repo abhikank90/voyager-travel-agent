@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp5a4fa",
+      "name": "hu Roma Camping In Town",
+      "price_per_night_usd": 46.15,
+      "total_usd": 323.08,
+      "rating": 8.5,
+      "amenities": [],
+      "location": "Via Aurelia 831, Rome, IT (41.8869,12.4045)",
+      "latitude": 41.88693,
+      "longitude": 12.404519
+    },
+    {
+      "hotel_id": "lp2f41b",
+      "name": "Hotel Isola Sacra Rome Airport",
+      "price_per_night_usd": 60.13,
+      "total_usd": 420.92,
+      "rating": 8.8,
+      "amenities": [],
+      "location": "Via della Scafa 416, Fiumicino, IT (41.7568,12.2730)",
+      "latitude": 41.756767,
+      "longitude": 12.273001
+    },
+    {
+      "hotel_id": "lp87def",
+      "name": "Raeli Hotel Lazio",
+      "price_per_night_usd": 66.73,
+      "total_usd": 467.12,
+      "rating": 8,
+      "amenities": [],
+      "location": "Via Vicenza 8, Rome, IT (41.9028,12.5023)",
+      "latitude": 41.902766,
+      "longitude": 12.502327
+    },
+    {
+      "hotel_id": "lp3a642",
+      "name": "LH Hotel Excel Roma Montemario",
+      "price_per_night_usd": 67.12,
+      "total_usd": 469.85,
+      "rating": 7.8,
+      "amenities": [],
+      "location": "Via Degli Scolopi 31, Rome, IT (41.9324,12.4337)",
+      "latitude": 41.932395,
+      "longitude": 12.433698
+    },
+    {
+      "hotel_id": "lp2e658",
+      "name": "Occidental Aran Park",
+      "price_per_night_usd": 69.74,
+      "total_usd": 488.2,
+      "rating": 7.7,
+      "amenities": [],
+      "location": "Via Riccardo Forster 24, Rome, IT (41.8209,12.5078)",
+      "latitude": 41.820903,
+      "longitude": 12.507817
+    }
+  ]
+}

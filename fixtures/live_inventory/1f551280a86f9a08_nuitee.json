@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp97a45",
+      "name": "ibis Styles Barcelona City Bogatell",
+      "price_per_night_usd": 74.59,
+      "total_usd": 372.95,
+      "rating": 8.6,
+      "amenities": [],
+      "location": "Carrer De Llull 71 - Distrito 22@, Barcelona, ES (41.3947,2.1935)",
+      "latitude": 41.394737,
+      "longitude": 2.193474
+    },
+    {
+      "hotel_id": "lp3087b",
+      "name": "Ibis Barcelona Meridiana",
+      "price_per_night_usd": 82.73,
+      "total_usd": 413.67,
+      "rating": 8.1,
+      "amenities": [],
+      "location": "Passeig Andreu Nin, 9, Barcelona, ES (41.4354,2.1817)",
+      "latitude": 41.435372,
+      "longitude": 2.181736
+    },
+    {
+      "hotel_id": "lp52146",
+      "name": "Hotel Best 4 Barcelona",
+      "price_per_night_usd": 85.2,
+      "total_usd": 425.99,
+      "rating": 8,
+      "amenities": [],
+      "location": "Doctor Trueta, 164, Barcelona, ES (41.3964,2.2006)",
+      "latitude": 41.396374,
+      "longitude": 2.200562
+    },
+    {
+      "hotel_id": "lp45b13",
+      "name": "Catalonia Park Putxet",
+      "price_per_night_usd": 86.53,
+      "total_usd": 432.66,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "Putget 68, Barcelona, ES (41.4073,2.1441)",
+      "latitude": 41.407298,
+      "longitude": 2.14414
+    },
+    {
+      "hotel_id": "lp2057a",
+      "name": "Hotel Best Auto Hogar",
+      "price_per_night_usd": 88.23,
+      "total_usd": 441.14,
+      "rating": 7.7,
+      "amenities": [],
+      "location": "Avenida Paral.lel, 64, Barcelona, ES (41.3751,2.1692)",
+      "latitude": 41.375121,
+      "longitude": 2.169183
+    }
+  ]
+}

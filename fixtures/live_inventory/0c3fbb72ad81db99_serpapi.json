@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 570.0,
+      "airline": "American",
+      "departure": "2026-12-02 12:46",
+      "arrival": "2026-12-02 14:49",
+      "stops": 0,
+      "duration": 183,
+      "duration_minutes": 183
+    },
+    {
+      "price_usd": 632.0,
+      "airline": "American",
+      "departure": "2026-12-02 18:50",
+      "arrival": "2026-12-02 20:50",
+      "stops": 0,
+      "duration": 180,
+      "duration_minutes": 180
+    },
+    {
+      "price_usd": 660.0,
+      "airline": "American",
+      "departure": "2026-12-02 10:55",
+      "arrival": "2026-12-02 13:01",
+      "stops": 0,
+      "duration": 186,
+      "duration_minutes": 186
+    }
+  ]
+}

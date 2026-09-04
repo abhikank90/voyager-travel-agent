@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 
+import httpx
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 
@@ -9,6 +10,13 @@ from metrics.token_tracker import TokenTrackingCallback
 from .base_agent import BaseAgent
 
 DESTINATIONS_DB = Path(__file__).parent.parent / "data" / "knowledge_base" / "destinations.json"
+
+# Free OpenWeather geocoding endpoint — no API key required. Used to attach
+# real coordinates to each experience from its human-readable `location` string
+# ("Oia, Santorini"), so the hub can emit a non-null activity_centroid and the
+# hotel agent can do distance-based matching against real inventory instead of
+# substring matching that cannot succeed against real hotel addresses.
+GEOCODE_URL = "http://api.openweathermap.org/geo/1.0/direct"
 
 EXPERIENCE_PROMPT = """You are a travel experiences expert. Given the destination and traveller interests,
 suggest the top 5 experiences including beaches, food, culture, and activities.
@@ -105,6 +113,12 @@ class ExperienceAgent(BaseAgent):
         if not experiences:
             experiences = self._fallback_experiences(destination, interests)
 
+        # Attach real coordinates to each experience from its `location` string
+        # so the hub can emit a non-null activity_centroid (typed constraint) and
+        # the hotel agent can distance-match against real inventory. Falls back
+        # to the destination's own location if an individual spot can't resolve.
+        await self._geocode_experiences(experiences)
+
         if context:
             beaches = context.get("top_beaches", [])
             restaurants = context.get("top_restaurants", [])
@@ -118,6 +132,37 @@ class ExperienceAgent(BaseAgent):
             "top_restaurants": restaurants,
             "destination_context": context,
         }
+
+    async def _geocode_experiences(self, experiences: list[dict]) -> None:
+        """Mutate each experience to add ``latitude``/``longitude``.
+
+        Uses the free OpenWeather `/geo/1.0/direct` endpoint keyed on the
+        experience's human-readable location string. If a spot can't resolve,
+        it degrades gracefully to (no coords) rather than failing the agent.
+        """
+        import asyncio
+        import os
+
+        api_key = os.getenv("OPENWEATHER_API_KEY", "")
+        if not experiences or not api_key:
+            return
+        async with httpx.AsyncClient(timeout=10) as client:
+            for exp in experiences:
+                query = (exp.get("location") or "").strip()
+                if not query:
+                    continue
+                try:
+                    resp = await client.get(
+                        GEOCODE_URL,
+                        params={"q": query, "limit": 1, "appid": api_key},
+                    )
+                    geo = resp.json()
+                    if isinstance(geo, list) and geo:
+                        exp["latitude"] = geo[0]["lat"]
+                        exp["longitude"] = geo[0]["lon"]
+                except Exception:
+                    continue
+                await asyncio.sleep(0.05)  # stay well under geocode rate limits
 
     def _fallback_experiences(self, destination: str, interests: list) -> list:
         return [

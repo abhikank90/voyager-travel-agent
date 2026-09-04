@@ -39,6 +39,7 @@ from agents import (
     VisaSafetyAgent,
     WeatherAgent,
 )
+from agents.conflicts import ConflictLifecycleTracker
 from graph.state import TravelState
 
 _AGENTS_ALL = {"flight", "hotel", "experience", "weather", "visa_safety"}
@@ -98,6 +99,11 @@ async def collaboration_hub_1_node(state: TravelState) -> TravelState:
     conflicts = result.get("conflicts") if result.get("conflicts") is not None else state.get("conflicts", [])
     existing = {**(state.get("run_metrics") or {}), **(result.get("run_metrics") or {})}
     result["run_metrics"] = {**existing, "round_1_conflicts": list(conflicts)}
+
+    # ── Lifecycle audit (Round 1) ──────────────────────────────────────────
+    tracker = ConflictLifecycleTracker.from_state(state.get("conflict_lifecycle_state"))
+    audit = tracker.audit(conflicts, round_num=1)
+    result.update(audit)
     return result
 
 
@@ -157,8 +163,22 @@ async def research_round_2(state: TravelState) -> TravelState:
 
 
 async def collaboration_hub_2_node(state: TravelState) -> TravelState:
-    """Round 2 hub: check if conflicts are resolved."""
-    return await _collaboration_hub.run(state)
+    """Round 2 hub: check if conflicts are resolved, audit lifecycle."""
+    result = await _collaboration_hub.run(state)
+    conflicts = result.get("conflicts") if result.get("conflicts") is not None else state.get("conflicts", [])
+
+    existing = {**(state.get("run_metrics") or {}), **(result.get("run_metrics") or {})}
+    result["run_metrics"] = {**existing, "round_2_conflicts": list(conflicts)}
+
+    tracker = ConflictLifecycleTracker.from_state(state.get("conflict_lifecycle_state"))
+    introduced_after = state.get("run_metrics", {}).get("round_2_agents_rerun")
+    audit = tracker.audit(
+        conflicts,
+        round_num=2,
+        introduced_after_agents=list(introduced_after) if introduced_after else None,
+    )
+    result.update(audit)
+    return result
 
 
 async def research_round_3(state: TravelState) -> TravelState:
@@ -204,10 +224,34 @@ async def research_round_3(state: TravelState) -> TravelState:
 
 async def final_conflict_audit_node(state: TravelState) -> TravelState:
     """Rule-based conflict detection only — no LLM, no side effects.
-    Records the true final conflict state for resolution-rate calculation."""
+    Records the true final conflict state for resolution-rate calculation and
+    computes the convergence/churn summary."""
     final_conflicts = _collaboration_hub.detect_conflicts_only(state)
     existing = state.get("run_metrics") or {}
-    return {"run_metrics": {**existing, "final_conflicts": final_conflicts}}
+
+    tracker = ConflictLifecycleTracker.from_state(state.get("conflict_lifecycle_state"))
+    # The final audit is a distinct snapshot. In full mode it lands on round 3
+    # (after any Round-3 re-run); in baseline mode there is only Round 1.
+    final_round = 3 if state.get("enable_refinement", True) else 1
+    round_3_agents = state.get("run_metrics", {}).get("round_3_agents_rerun")
+    audit = tracker.audit(
+        final_conflicts,
+        round_num=final_round,
+        introduced_after_agents=list(round_3_agents) if round_3_agents else None,
+    )
+
+    result = {
+        "run_metrics": {**existing, "final_conflicts": final_conflicts},
+        "conflicts_current": audit["conflicts_current"],
+        "conflict_lifecycle": audit["conflict_lifecycle"],
+        "conflicts_introduced": audit["conflicts_introduced"],
+        "conflicts_resolved": audit["conflicts_resolved"],
+        "conflicts_persisting": audit["conflicts_persisting"],
+        "conflicts_reopened": audit["conflicts_reopened"],
+        "conflict_lifecycle_state": audit["conflict_lifecycle_state"],
+    }
+    result["run_metrics"]["convergence_summary"] = tracker.convergence_summary()
+    return result
 
 
 async def budget_guardrail_node(state: TravelState) -> TravelState:

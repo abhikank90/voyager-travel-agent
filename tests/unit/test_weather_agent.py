@@ -76,3 +76,24 @@ async def test_unknown_destination_returns_default_weather():
     result = await agent._execute({"intent": {"destination": "Unknownia", "travel_month": "July"}})
     assert "weather" in result
     assert "avg_temp_c" in result["weather"]
+
+
+@pytest.mark.asyncio
+async def test_replay_mode_never_calls_forecast(monkeypatch):
+    """Replay mode reads the captured fixture and never hits the forecast API."""
+    from unittest.mock import AsyncMock
+
+    captured = {"avg_temp_c": 33, "summary": "hot and dry", "source": "openweather"}
+    forecast_called = AsyncMock()
+
+    agent = WeatherAgent()
+    agent._fetch_forecast = forecast_called  # type: ignore[method-assign]
+
+    monkeypatch.setattr(agent, "_inventory_mode", lambda: "replay")
+    monkeypatch.setattr("agents.weather_agent.inventory.inventory_query_id", lambda *a, **k: "q1")
+    monkeypatch.setattr("agents.weather_agent.inventory.replay", lambda *a, **k: captured)
+
+    result = await agent._execute({"intent": {"destination": "Greece", "travel_month": "July"}})
+
+    assert result["weather"] == captured
+    assert forecast_called.await_count == 0

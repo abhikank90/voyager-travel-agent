@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp655b07c8",
+      "name": "\u0e1f\u0e49\u0e32\u0e17\u0e30\u0e25\u0e32\u0e22\u0e42\u0e08\u0e23\u0e23\u0e35\u0e2a\u0e2d\u0e23\u0e4c\u0e17",
+      "price_per_night_usd": 17.73,
+      "total_usd": 248.23,
+      "rating": 8.3,
+      "amenities": [],
+      "location": "\u0e1a\u0e49\u0e32\u0e19\u0e40\u0e25\u0e02\u0e17\u0e35\u0e48 358 \u0e2b\u0e21\u0e39\u0e48 1 \u0e15\u0e33\u0e1a\u0e25\u0e04\u0e25\u0e2d\u0e07\u0e27\u0e32\u0e2c \u0e2d\u0e33\u0e40\u0e20\u0e2d\u0e40\u0e21\u0e37\u0e2d\u0e07, Prachuap Khiri Khan, TH (11.7451,99.7892)",
+      "latitude": 11.74507,
+      "longitude": 99.789221
+    },
+    {
+      "hotel_id": "lp655bd69a",
+      "name": "Golden Beach Boutique Resort",
+      "price_per_night_usd": 22.12,
+      "total_usd": 309.64,
+      "rating": 8.3,
+      "amenities": [],
+      "location": "113-115 Suanson Road.A. Muang Prachuabkhirikhan, Prachuap Khiri Khan, TH (11.8235,99.8015)",
+      "latitude": 11.823475,
+      "longitude": 99.801511
+    },
+    {
+      "hotel_id": "lp655bd696",
+      "name": "The Rest Hotel - \u0e1b\u0e23\u0e30\u0e08\u0e27\u0e1a",
+      "price_per_night_usd": 28.02,
+      "total_usd": 392.31,
+      "rating": 8.6,
+      "amenities": [],
+      "location": "168/1 Prachuap Khiri Khan, Prachuap Khiri Khan, TH (11.8184,99.7811)",
+      "latitude": 11.81837,
+      "longitude": 99.781134
+    },
+    {
+      "hotel_id": "lpb2ded",
+      "name": "Prachuap Beach Hotel",
+      "price_per_night_usd": 29.08,
+      "total_usd": 407.18,
+      "rating": 8.5,
+      "amenities": [],
+      "location": "123 Susek Road Prachuap Khiri Khan City Center, Prachuap Khiri Khan, TH (11.8011,99.7999)",
+      "latitude": 11.80106,
+      "longitude": 99.799874
+    },
+    {
+      "hotel_id": "lp655b1859",
+      "name": "Hadthong Hotel",
+      "price_per_night_usd": 32.12,
+      "total_usd": 449.74,
+      "rating": 7.5,
+      "amenities": [],
+      "location": "21 Susuek Rd.  T.Prachuab, A. Muang, Prachuap Khiri Khan, TH (11.8050,99.7987)",
+      "latitude": 11.805027,
+      "longitude": 99.798687
+    }
+  ]
+}

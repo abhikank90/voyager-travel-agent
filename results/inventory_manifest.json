@@ -1,0 +1,340 @@
+{
+  "fixtures": {
+    "5d77d26070c62c42_openweather": {
+      "query_id": "5d77d26070c62c42",
+      "captured_at": "2026-09-04T04:25:33.527673+00:00",
+      "source": "openweather",
+      "fixture_hash": "32903d70ba4693e1780c3eb07cde4b57b40ebaa214dd3493f3e2c7b4a2d10a61",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "02efa51da2ba53bf_serpapi": {
+      "query_id": "02efa51da2ba53bf",
+      "captured_at": "2026-09-04T04:25:33.207741+00:00",
+      "source": "serpapi",
+      "fixture_hash": "745912c3b5cfc3076160f3cc07b81b50bb40bca7a07866c48129391c2d3d05c0",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "262648bfbe3a4d4a_nuitee": {
+      "query_id": "262648bfbe3a4d4a",
+      "captured_at": "2026-09-04T04:25:34.843338+00:00",
+      "source": "nuitee",
+      "fixture_hash": "3033df026be614083f8b099d393c03b65c781f6d51fd188c2bb57cf333841c5a",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "fdb8cddfa1fff05f_nuitee": {
+      "query_id": "fdb8cddfa1fff05f",
+      "captured_at": "2026-09-04T04:30:16.049937+00:00",
+      "source": "nuitee",
+      "fixture_hash": "29f4af8a928b1ead8d858250f62ae4623cae2a0563b05b701c27ec63d870af08",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "ad76d8287e8f365d_openweather": {
+      "query_id": "ad76d8287e8f365d",
+      "captured_at": "2026-09-04T04:30:16.203725+00:00",
+      "source": "openweather",
+      "fixture_hash": "3f6fe707cfa344fcc86a5fda3bce1b1120da674b45d75666cf2c17d47aca4159",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "351dfd952c32b73a_serpapi": {
+      "query_id": "351dfd952c32b73a",
+      "captured_at": "2026-09-04T04:30:16.059940+00:00",
+      "source": "serpapi",
+      "fixture_hash": "0d3124ed5d9492df6b1a132e4b0bd14b39867299e172378507f51a7ee3baf22f",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "ccd1e996a6ce8153_openweather": {
+      "query_id": "ccd1e996a6ce8153",
+      "captured_at": "2026-09-04T04:32:14.594932+00:00",
+      "source": "openweather",
+      "fixture_hash": "c28928302cb479f291a7fef0429d8a41e888d6f9c17557b97eb5a1e02c35afef",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "ff38eb8fc62bed58_nuitee": {
+      "query_id": "ff38eb8fc62bed58",
+      "captured_at": "2026-09-04T04:32:15.029670+00:00",
+      "source": "nuitee",
+      "fixture_hash": "c83aeff378f552ce61a2452d28c1fe1b205ce814983fd33d048aae1450967b0a",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "fe42c76e2a6d19a7_serpapi": {
+      "query_id": "fe42c76e2a6d19a7",
+      "captured_at": "2026-09-04T04:32:14.450472+00:00",
+      "source": "serpapi",
+      "fixture_hash": "4b583e793eb0a03d0ffa7a5c6b23d3968ba6630919fcf31e323e8416ef90bb0d",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "8bdd08d6ba5779a0_openweather": {
+      "query_id": "8bdd08d6ba5779a0",
+      "captured_at": "2026-09-04T04:33:53.914820+00:00",
+      "source": "openweather",
+      "fixture_hash": "ceb2d1ec8129eac529d01f64d06fdde73eb9c10a45e223202c5e8263fe19790b",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "cab885061a0d1440_serpapi": {
+      "query_id": "cab885061a0d1440",
+      "captured_at": "2026-09-04T04:33:53.764873+00:00",
+      "source": "serpapi",
+      "fixture_hash": "4b583e793eb0a03d0ffa7a5c6b23d3968ba6630919fcf31e323e8416ef90bb0d",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "10ab69b3c0b408b8_nuitee": {
+      "query_id": "10ab69b3c0b408b8",
+      "captured_at": "2026-09-04T04:33:55.134179+00:00",
+      "source": "nuitee",
+      "fixture_hash": "c854417c4f101d3a6faa5811aeae0f26ad4ce8627795342232e0651665a96ae5",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "3e49d1b38049ae1c_nuitee": {
+      "query_id": "3e49d1b38049ae1c",
+      "captured_at": "2026-09-04T04:35:14.445796+00:00",
+      "source": "nuitee",
+      "fixture_hash": "29f4af8a928b1ead8d858250f62ae4623cae2a0563b05b701c27ec63d870af08",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "c9d8dce49c0b4d0a_openweather": {
+      "query_id": "c9d8dce49c0b4d0a",
+      "captured_at": "2026-09-04T04:35:14.490557+00:00",
+      "source": "openweather",
+      "fixture_hash": "45c9104a4f4556ae56bcd72063049bcbd1be6dde28ab8f19dbd4943b702696b4",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "28e551088bdc8290_serpapi": {
+      "query_id": "28e551088bdc8290",
+      "captured_at": "2026-09-04T04:35:14.330985+00:00",
+      "source": "serpapi",
+      "fixture_hash": "745912c3b5cfc3076160f3cc07b81b50bb40bca7a07866c48129391c2d3d05c0",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "cdba893ff9b4af6d_openweather": {
+      "query_id": "cdba893ff9b4af6d",
+      "captured_at": "2026-09-04T04:35:52.124728+00:00",
+      "source": "openweather",
+      "fixture_hash": "8644ec0958ac5e1d76c1e118b257a5c02947e2765adb8afd3c7f04f30d6fb276",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "a538853e63bfc32d_serpapi": {
+      "query_id": "a538853e63bfc32d",
+      "captured_at": "2026-09-04T04:36:33.984173+00:00",
+      "source": "serpapi",
+      "fixture_hash": "63603e64d4acc75283bf1f5af29c70d2d62f64097a1e843187fa776619056eb0",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "aaacc598dd42847d_nuitee": {
+      "query_id": "aaacc598dd42847d",
+      "captured_at": "2026-09-04T04:35:58.264871+00:00",
+      "source": "nuitee",
+      "fixture_hash": "29f4af8a928b1ead8d858250f62ae4623cae2a0563b05b701c27ec63d870af08",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "2373d320276f84d7_openweather": {
+      "query_id": "2373d320276f84d7",
+      "captured_at": "2026-09-04T04:44:27.490343+00:00",
+      "source": "openweather",
+      "fixture_hash": "41093f5e8a18360a175b69263aaa86d557e7ad8a2f70e7529aed5073f5abf8aa",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "daea37fc089cc8a7_nuitee": {
+      "query_id": "daea37fc089cc8a7",
+      "captured_at": "2026-09-04T04:44:28.888777+00:00",
+      "source": "nuitee",
+      "fixture_hash": "9607cc190c25a7d1dc51cf72e34efb0a558a62a05ab9fe29391320d33e4cfb5e",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "ea20691e102538b8_serpapi": {
+      "query_id": "ea20691e102538b8",
+      "captured_at": "2026-09-04T04:44:27.330131+00:00",
+      "source": "serpapi",
+      "fixture_hash": "018e90e92f8de7f5dabff8573f3e71920a9f25c113d049256b1724493e739518",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "2d627f1730d7f72c_serpapi": {
+      "query_id": "2d627f1730d7f72c",
+      "captured_at": "2026-09-04T04:36:37.180567+00:00",
+      "source": "serpapi",
+      "fixture_hash": "89e095a5b2712d97f269c4b41184f51bbf0f2e9a27e97e46956bf29922c45af3",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "7c34c532b228bc00_openweather": {
+      "query_id": "7c34c532b228bc00",
+      "captured_at": "2026-09-04T04:36:37.352529+00:00",
+      "source": "openweather",
+      "fixture_hash": "8644ec0958ac5e1d76c1e118b257a5c02947e2765adb8afd3c7f04f30d6fb276",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "b76aeaac8cb6d020_nuitee": {
+      "query_id": "b76aeaac8cb6d020",
+      "captured_at": "2026-09-04T04:36:46.169500+00:00",
+      "source": "nuitee",
+      "fixture_hash": "e3cea38246381fc455bc6168cc3f1b44a2a31ef1086a8ba71ffca1ca35e7434b",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "1fea7359c87c3bbc_openweather": {
+      "query_id": "1fea7359c87c3bbc",
+      "captured_at": "2026-09-04T04:52:24.836625+00:00",
+      "source": "openweather",
+      "fixture_hash": "b115180eaa138184a61b9fd362e71d85bf8d19f707d01b90280fb7fd4a067d2c",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "ea6ed45cec27a6c8_serpapi": {
+      "query_id": "ea6ed45cec27a6c8",
+      "captured_at": "2026-09-04T04:52:24.707727+00:00",
+      "source": "serpapi",
+      "fixture_hash": "4daeda2fd7269499caf0cbd0412d3ea360a00bafa62ac34dccfe810a17cbdf21",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "21cf7e9cfe66fea5_nuitee": {
+      "query_id": "21cf7e9cfe66fea5",
+      "captured_at": "2026-09-04T04:52:26.337287+00:00",
+      "source": "nuitee",
+      "fixture_hash": "3ad8d767b995b03f7a4ac9232e9c45676c57f2daf149c6a2bf213ac5431b0f9b",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "f11de12ae0ab7bd1_openweather": {
+      "query_id": "f11de12ae0ab7bd1",
+      "captured_at": "2026-09-04T05:00:35.722068+00:00",
+      "source": "openweather",
+      "fixture_hash": "0bc3f825f74f32c88cc414ba2efde43a99abd7515dffe6c767376d75bf93e18b",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "0e0fb51fd379f5db_serpapi": {
+      "query_id": "0e0fb51fd379f5db",
+      "captured_at": "2026-09-04T05:00:35.539684+00:00",
+      "source": "serpapi",
+      "fixture_hash": "da90ff065aab3ffadaeae383c209c4bb8c69d00ff3266e5d70f7860f4fbb26e7",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "1f551280a86f9a08_nuitee": {
+      "query_id": "1f551280a86f9a08",
+      "captured_at": "2026-09-04T05:00:37.177230+00:00",
+      "source": "nuitee",
+      "fixture_hash": "ac5baf78c0d88332b764561eb5422eac5295121e198536a8c2e11ec75c96bfd7",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "87395b2f1e4e046c_openweather": {
+      "query_id": "87395b2f1e4e046c",
+      "captured_at": "2026-09-04T05:08:25.101071+00:00",
+      "source": "openweather",
+      "fixture_hash": "8f48b55e5073a5bfe8c56e2a8cf208d9a05957d1dab408409ef5f4f8b9f9205a",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "95ed88cdc7725860_serpapi": {
+      "query_id": "95ed88cdc7725860",
+      "captured_at": "2026-09-04T05:08:24.888642+00:00",
+      "source": "serpapi",
+      "fixture_hash": "63603e64d4acc75283bf1f5af29c70d2d62f64097a1e843187fa776619056eb0",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "c13019dedf2dcf25_nuitee": {
+      "query_id": "c13019dedf2dcf25",
+      "captured_at": "2026-09-04T05:08:26.538503+00:00",
+      "source": "nuitee",
+      "fixture_hash": "504c3432ac1ab520e2a73661df809f73d4251a05a820c856c13bcab686a2b9f1",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "5981ec85a1ceb7b1_openweather": {
+      "query_id": "5981ec85a1ceb7b1",
+      "captured_at": "2026-09-04T05:16:06.551588+00:00",
+      "source": "openweather",
+      "fixture_hash": "45c9104a4f4556ae56bcd72063049bcbd1be6dde28ab8f19dbd4943b702696b4",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "6d7eaf8de3289ab5_serpapi": {
+      "query_id": "6d7eaf8de3289ab5",
+      "captured_at": "2026-09-04T05:16:06.405644+00:00",
+      "source": "serpapi",
+      "fixture_hash": "745912c3b5cfc3076160f3cc07b81b50bb40bca7a07866c48129391c2d3d05c0",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "af7fac9814577477_nuitee": {
+      "query_id": "af7fac9814577477",
+      "captured_at": "2026-09-04T05:16:07.461103+00:00",
+      "source": "nuitee",
+      "fixture_hash": "df8e95aaf30d9f7367d54583d1a2ef83a2c5a527637c78c0f262cdc2f06479b1",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "df259aede1780819_openweather": {
+      "query_id": "df259aede1780819",
+      "captured_at": "2026-09-04T05:20:21.006058+00:00",
+      "source": "openweather",
+      "fixture_hash": "dc034d9a6005ccd3fabc0aa42bfaf8622bff5bbadb6ee41b64ba42383a4c9661",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "70fef74b7eb00083_nuitee": {
+      "query_id": "70fef74b7eb00083",
+      "captured_at": "2026-09-04T05:20:20.924054+00:00",
+      "source": "nuitee",
+      "fixture_hash": "29f4af8a928b1ead8d858250f62ae4623cae2a0563b05b701c27ec63d870af08",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "0c3fbb72ad81db99_serpapi": {
+      "query_id": "0c3fbb72ad81db99",
+      "captured_at": "2026-09-04T05:20:20.882382+00:00",
+      "source": "serpapi",
+      "fixture_hash": "36ea5873eecf51f5444bf0615c1f39a4ca1a12257f39f6cf5b31f9086b75786c",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    },
+    "86e2719866dfa57e_openweather": {
+      "query_id": "86e2719866dfa57e",
+      "captured_at": "2026-09-04T02:30:43.857658+00:00",
+      "source": "openweather",
+      "fixture_hash": "760df03b85c68dfec08ad16b1755562b4180dd4f8805064aae41da2c13d0f226",
+      "sanitized": true,
+      "run_label": "weather-capture"
+    },
+    "52602a109115e889_nuitee": {
+      "query_id": "52602a109115e889",
+      "captured_at": "2026-09-04T02:30:49.373725+00:00",
+      "source": "nuitee",
+      "fixture_hash": "0b459eec1619acf2f2c4b718d5346babda332110bc02abdee92ecc52f6e35652",
+      "sanitized": true,
+      "run_label": "hotel-capture"
+    },
+    "c86927bf1ff36e6e_serpapi": {
+      "query_id": "c86927bf1ff36e6e",
+      "captured_at": "2026-09-04T02:30:50.213618+00:00",
+      "source": "serpapi",
+      "fixture_hash": "9f5e45cec000e455f1bbc23057f7aae4a77db76a925f5cde1add063ad86ab081",
+      "sanitized": true,
+      "run_label": "flight-capture"
+    }
+  }
+}

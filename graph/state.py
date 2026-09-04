@@ -58,6 +58,25 @@ class TravelState(TypedDict, total=False):
     shared_discoveries: dict[str, Any]  # Cross-agent insights
     agent_proposals: dict[str, dict]  # Each agent's current best proposal
     conflicts: list[dict]  # Identified conflicts between agents
+
+    # ── Conflict lifecycle tracking ───────────────────────────────────────
+    # Deterministic conflicts are the authoritative set used for routing.
+    # LLM candidates are proposals only and never route unless a deterministic
+    # validator accepts them (see agents/hybrid_conflict_detector.py).
+    deterministic_conflicts: list[dict]
+    llm_candidate_conflicts: list[dict]
+    validated_llm_conflicts: list[dict]
+    unverified_llm_conflicts: list[dict]
+
+    # Lifecycle fields (populated after each hub audit).
+    conflicts_current: list[dict]
+    conflict_lifecycle: list[dict]
+    conflicts_introduced: list[dict]
+    conflicts_resolved: list[dict]
+    conflicts_persisting: list[dict]
+    conflicts_reopened: list[dict]
+    conflict_lifecycle_state: dict[str, Any]  # serialized ConflictLifecycleTracker
+
     synergies: list[dict]  # Identified opportunities
 
     # Research results (populated in parallel, refined over rounds)
@@ -103,6 +122,12 @@ class TravelState(TypedDict, total=False):
 
     # When False: skip Rounds 2/3 (baseline comparison mode for benchmarking)
     enable_refinement: bool
+
+    # Feedback from constraint application (flight/hotel agents report whether
+    # a collaboration constraint was satisfiable or fell back to the original
+    # selection). Must be declared here or LangGraph drops it at node
+    # boundaries, silently zeroing the collector's unsatisfiable rate.
+    feedback_metrics: dict[str, Any]
 
     # Instrumentation — populated during the run, written to metrics JSONL at end
     run_metrics: dict[str, Any]

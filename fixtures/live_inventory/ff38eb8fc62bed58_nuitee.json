@@ -1,0 +1,26 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp6557ba02",
+      "name": "Hilton Garden Inn Balikesir",
+      "price_per_night_usd": 71.71,
+      "total_usd": 1003.93,
+      "rating": 9.8,
+      "amenities": [],
+      "location": "Haciilbey Mah Anafartalar Cad 48/1, Bal\u0131kesir, TR (39.6448,27.8789)",
+      "latitude": 39.644813,
+      "longitude": 27.87892
+    },
+    {
+      "hotel_id": "lp6555bb50",
+      "name": "Ramada Residences by Wyndham Balikesir",
+      "price_per_night_usd": 83.93,
+      "total_usd": 1175.09,
+      "rating": 8.6,
+      "amenities": [],
+      "location": "19/23 Altieylul Bahcelievler Mahallesi Teknik Lise Caddesi, Bal\u0131kesir, TR (39.6371,27.8896)",
+      "latitude": 39.63714,
+      "longitude": 27.88962
+    }
+  ]
+}

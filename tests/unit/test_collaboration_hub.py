@@ -94,6 +94,20 @@ def test_location_mismatch_false_when_no_hotel(hub):
     assert hub._check_hotel_experience_mismatch(state) is False
 
 
+def test_location_mismatch_false_when_hotel_is_none(hub):
+    """Real inventory may leave selected_hotel None (no qualifying hotel).
+    The hub must not crash and must treat it as 'no hotel'."""
+    state = _state_location_mismatch()
+    state["selected_hotel"] = None
+    assert hub._check_hotel_experience_mismatch(state) is False
+
+
+def test_synergies_do_not_crash_when_hotel_is_none(hub):
+    state = _state_no_conflicts()
+    state["selected_hotel"] = None
+    assert hub._identify_synergies(state) == []
+
+
 def test_location_mismatch_false_when_no_experiences(hub):
     state = _state_location_mismatch()
     state["experiences"] = []

@@ -11,7 +11,11 @@ from typing import Any
 from anthropic import Anthropic
 
 from agents.base_agent import BaseAgent
-from config import get_api_config
+from agents.hybrid_conflict_detector import (
+    HybridConflictDetector,
+    parse_llm_candidates,
+)
+from config import get_api_config, get_settings
 from graph.state import CollaborationMessage, TravelState
 from metrics.token_tracker import track_usage
 
@@ -26,6 +30,7 @@ class CollaborationHubAgent(BaseAgent):
         config = get_api_config()
         self.client = Anthropic(api_key=config.llm.api_key)
         self.model = config.llm.collaboration_hub_model
+        self._hybrid_detector = HybridConflictDetector(self)
 
     async def _execute(self, state: TravelState) -> dict:
         round_num = state.get("collaboration_round", 1)
@@ -58,12 +63,15 @@ class CollaborationHubAgent(BaseAgent):
         # the UI (stored in shared_discoveries["hub_narrative"]). Conflict
         # detection and message routing are intentionally rule-based — see
         # _identify_conflicts — to keep benchmarks deterministic. An
-        # LLM-augmented detector is tracked as a roadmap item.
+        # LLM-augmented detector (propose + validate) is optional and gated by
+        # settings.enable_llm_conflict_candidates.
         analysis_text = response.content[0].text
 
         messages = self._generate_collaboration_messages(state, round=1)
         conflicts = self._identify_conflicts(state)
         synergies = self._identify_synergies(state)
+
+        hybrid = self._run_hybrid_detection(state)
 
         shared = self._extract_shared_insights(state)
         shared["hub_narrative"] = analysis_text
@@ -71,9 +79,11 @@ class CollaborationHubAgent(BaseAgent):
         return {
             "agent_messages": messages,
             "conflicts": conflicts,
+            "deterministic_conflicts": conflicts,
             "synergies": synergies,
             "collaboration_round": 1,
-            "shared_discoveries": shared
+            "shared_discoveries": shared,
+            **hybrid,
         }
 
     async def _analyze_round_2(self, state: TravelState) -> dict:
@@ -92,9 +102,99 @@ class CollaborationHubAgent(BaseAgent):
         return {
             "agent_messages": messages,
             "conflicts": current_conflicts,
+            "deterministic_conflicts": current_conflicts,
             "collaboration_round": 2,
             "shared_discoveries": self._extract_shared_insights(state)
         }
+
+    def _run_hybrid_detection(self, state: TravelState) -> dict:
+        """Propose LLM candidate conflicts and validate them (feature-flagged).
+
+        Candidates are *never* merged into ``conflicts``/``deterministic_conflicts``
+        and *never* generate agent messages. They land in separate state fields so
+        the benchmark can report agreement, recall gain, and false positives
+        independently of the deterministic routing layer.
+        """
+        settings = get_settings()
+        if not settings.enable_llm_conflict_candidates:
+            return {
+                "llm_candidate_conflicts": [],
+                "validated_llm_conflicts": [],
+                "unverified_llm_conflicts": [],
+            }
+
+        candidates = self._propose_llm_candidates(state)
+        candidate_dicts = [c.model_dump() for c in candidates]
+        validated, unverified = self._hybrid_detector.validate(candidates, state)
+
+        return {
+            "llm_candidate_conflicts": candidate_dicts,
+            "validated_llm_conflicts": [v.to_dict() for v in validated],
+            "unverified_llm_conflicts": [u.to_dict() for u in unverified],
+        }
+
+    def _propose_llm_candidates(self, state: TravelState) -> list:
+        """Call the LLM for candidate conflicts, rejecting schema-invalid output.
+
+        Repeats the call ``settings.llm_detector_repetitions`` times and returns
+        the union of candidates (deduplicated by (type, agents)) so a single bad
+        parse cannot silently zero out detection.
+        """
+        from agents.hybrid_conflict_detector import ConflictCandidate
+
+        settings = get_settings()
+        prompt = self._build_candidate_prompt(state)
+        seen: set[tuple[str, tuple[str, ...]]] = set()
+        candidates: list[ConflictCandidate] = []
+
+        for _ in range(max(1, settings.llm_detector_repetitions)):
+            try:
+                response = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=1000,
+                    temperature=settings.llm_detector_temperature,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+                track_usage(
+                    response.usage.input_tokens,
+                    response.usage.output_tokens,
+                    model=self.model,
+                )
+                parsed = parse_llm_candidates(response.content[0].text)
+            except Exception:
+                parsed = None
+            if parsed is None:
+                continue
+            for candidate in parsed:
+                key = (candidate.conflict_type, tuple(sorted(candidate.agents)))
+                if key not in seen:
+                    seen.add(key)
+                    candidates.append(candidate)
+        return candidates
+
+    def _build_candidate_prompt(self, state: TravelState) -> str:
+        """Prompt for proposing *candidate* conflicts under a strict JSON schema."""
+        import json as _json
+
+        findings = {
+            "intent": state.get("intent", {}),
+            "selected_flight": state.get("selected_flight", {}),
+            "selected_hotel": state.get("selected_hotel", {}),
+            "experiences": state.get("experiences", []),
+            "weather": state.get("weather", {}),
+            "visa_safety": state.get("visa_safety", {}),
+        }
+        return (
+            "You are proposing candidate conflicts between specialist travel agents. "
+            "Respond with ONLY JSON (no prose, no markdown) matching this exact schema:\n"
+            '{"candidates": [{"conflict_type": "<snake_case>", "agents": ["<agent>"], '
+            '"hypothesis": "<one sentence>", "evidence": ["<string>"], '
+            '"suggested_rule": "<string or null>", "confidence": <float 0..1>}]}\n\n'
+            "Candidate conflicts may go beyond what deterministic rules can see. "
+            "They will be validated later and are NOT authoritative on their own.\n\n"
+            "Combined agent findings:\n"
+            f"{_json.dumps(findings, indent=2, default=str)}"
+        )
 
     def _build_analysis_prompt(self, state: TravelState, round: int) -> str:
         """Build prompt for Claude to analyze agent findings."""
@@ -190,6 +290,7 @@ Provide a concise analysis highlighting:
         # Only the hotel is asked to relocate — user interests drive experience selection,
         # so experiences are the "truth" and the hotel should adapt to them.
         if self._check_hotel_experience_mismatch(state):
+            centroid = self._get_experience_centroid(state)
             messages.append({
                 "from_agent": "collaboration_hub",
                 "to_agent": "hotel",
@@ -200,7 +301,11 @@ Provide a concise analysis highlighting:
                 ),
                 "data": {
                     "activity_locations": self._get_experience_locations(state),
-                    "current_hotel_location": state.get("selected_hotel", {}).get("location", "")
+                    "activity_centroid": (
+                        {"lat": centroid[0], "lon": centroid[1]} if centroid
+                        else {"lat": None, "lon": None}
+                    ),
+                    "current_hotel_location": (state.get("selected_hotel") or {}).get("location", "")
                 },
                 "round": round
             })
@@ -353,6 +458,30 @@ Provide a concise analysis highlighting:
             if e.get("location", "").strip()
         ))
 
+    def _get_experience_centroid(self, state: TravelState) -> tuple[float, float] | None:
+        """Mean coordinates of the top 3 experiences, or None if unavailable.
+
+        The hotel agent prefers distance-based matching against this typed
+        centroid over substring matching the human-readable location strings,
+        which don't survive contact with real hotel-inventory payloads.
+        """
+        experiences = state.get("experiences", [])
+        lats: list[float] = []
+        lons: list[float] = []
+        for e in experiences[:3]:
+            lat = e.get("latitude") or e.get("lat")
+            lon = e.get("longitude") or e.get("lon") or e.get("lng")
+            if lat is None or lon is None:
+                continue
+            try:
+                lats.append(float(lat))
+                lons.append(float(lon))
+            except (TypeError, ValueError):
+                continue
+        if not lats:
+            return None
+        return sum(lats) / len(lats), sum(lons) / len(lons)
+
     def detect_conflicts_only(self, state: TravelState) -> list[dict]:
         """Rule-based conflict detection — no LLM calls, no side effects.
         Used for the final audit and baseline comparisons."""
@@ -378,7 +507,12 @@ Provide a concise analysis highlighting:
                 "type": "location_mismatch",
                 "agents": ["hotel", "experience"],
                 "description": "Hotel location is far from main activities",
-                "severity": "medium"
+                "severity": "medium",
+                # Structured, order-independent evidence only — no prose. The
+                # activity locations participate in the identity fingerprint so
+                # each query's conflict is content-addressed (distinct evidence
+                # → distinct identity → meaningful introduced/resolved/reopened).
+                "data": {"activity_locations": sorted(set(self._get_experience_locations(state)))},
             })
 
         if self._check_flight_timing_issue(state):
@@ -386,7 +520,8 @@ Provide a concise analysis highlighting:
                 "type": "timing_inefficiency",
                 "agents": ["flight"],
                 "description": "Flight times waste partial travel days",
-                "severity": "low"
+                "severity": "low",
+                "data": {"preferred_arrival": "before 14:00"},
             })
 
         if self._check_weather_activity_mismatch(state):
@@ -399,17 +534,39 @@ Provide a concise analysis highlighting:
                 # rates for weather vs. location/timing are expected and honest; they
                 # reflect real planning tradeoffs and make the benchmark more credible.
                 "description": "Activities not optimized for weather conditions",
-                "severity": "medium"
+                "severity": "medium",
+                "data": {"advisory": self._weather_advisory_label(state)},
             })
 
         return conflicts
+
+    def _weather_advisory_label(self, state: TravelState) -> str:
+        """Return a stable label for the weather conflict (heat vs. rain).
+
+        Used as structured fingerprint evidence so a heat-driven conflict and a
+        rain-driven conflict do not collapse into a single identity.
+        """
+        weather = state.get("weather", {})
+        avg_temp = weather.get("avg_temp_c", 25)
+        precipitation = weather.get("precipitation_mm", 0)
+        summary = weather.get("summary", "").lower()
+        significant_rain = precipitation > 50 or any(
+            kw in summary for kw in ("rain", "storm", "monsoon", "heavy shower")
+        )
+        if significant_rain:
+            return "rain"
+        if avg_temp >= 32:
+            return "heat"
+        return "advisory"
 
     def _identify_synergies(self, state: TravelState) -> list[dict]:
         """Identify positive synergies between agent findings."""
         synergies = []
 
         # Hotel near beach + beach experiences
-        hotel = state.get("selected_hotel", {})
+        # selected_hotel can be None when no qualifying hotel was found
+        # (real inventory may return nothing under budget or near the centroid).
+        hotel = state.get("selected_hotel") or {}
         experiences = state.get("experiences", [])
 
         if "beach" in hotel.get("name", "").lower() or "beach" in hotel.get("description", "").lower():

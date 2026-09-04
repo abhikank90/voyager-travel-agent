@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lpa96cc",
+      "name": "Seoul Station R Guesthouse",
+      "price_per_night_usd": 58.91,
+      "total_usd": 824.78,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "16-7, Mallijae-ro 36-gil, Yongsan-gu, Seoul, KR (37.5536,126.9667)",
+      "latitude": 37.553609,
+      "longitude": 126.966715
+    },
+    {
+      "hotel_id": "lp82b73",
+      "name": "La Villa Hotel",
+      "price_per_night_usd": 61.68,
+      "total_usd": 863.56,
+      "rating": 8,
+      "amenities": [],
+      "location": "138, Jinheung-ro, Eunpyeong-gu, Seoul, KR (37.6079,126.9256)",
+      "latitude": 37.607906,
+      "longitude": 126.925558
+    },
+    {
+      "hotel_id": "lpd4822",
+      "name": "Toyoko Inn Incheon Bupyeong",
+      "price_per_night_usd": 64.66,
+      "total_usd": 905.18,
+      "rating": 8.6,
+      "amenities": [],
+      "location": "10, Gwangjang-ro, Bupyeong-gu, Incheon, KR (37.4904,126.7222)",
+      "latitude": 37.490371,
+      "longitude": 126.722171
+    },
+    {
+      "hotel_id": "lpc4652",
+      "name": "MD Hotel Doksan",
+      "price_per_night_usd": 68.85,
+      "total_usd": 963.84,
+      "rating": 9.4,
+      "amenities": [],
+      "location": "315, Siheung-daero, Geumcheon-gu, Seoul, KR (37.4614,126.8973)",
+      "latitude": 37.461354,
+      "longitude": 126.897348
+    },
+    {
+      "hotel_id": "lp6ff40",
+      "name": "Hotel Pharos",
+      "price_per_night_usd": 74.83,
+      "total_usd": 1047.65,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "5, Olympic-ro 10-gil, Songpa-gu, Seoul, KR (37.5110,127.0811)",
+      "latitude": 37.511034,
+      "longitude": 127.081139
+    }
+  ]
+}

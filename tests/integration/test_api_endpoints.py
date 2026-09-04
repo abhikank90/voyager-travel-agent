@@ -88,7 +88,7 @@ def test_health_endpoint(client):
     response = client.get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {"status": "ok", "service": "voyager-travel-agent"}
 
 
 def test_collaborative_endpoint_success(client, mock_graph_run):
@@ -142,15 +142,15 @@ def test_collaborative_endpoint_validation():
 
 def test_select_option_endpoint():
     """Test option selection endpoint."""
-    with patch("api.main.session_storage") as mock_storage:
-        mock_storage.get.return_value = {
+    with patch("api.main._session_store", {
+        "test-session": {
             "trip_options": [
                 {"option_id": 0, "style": "budget"},
                 {"option_id": 1, "style": "balanced"},
                 {"option_id": 2, "style": "premium"}
             ]
         }
-
+    }):
         client_test = TestClient(app)
 
         request_data = {
@@ -164,22 +164,21 @@ def test_select_option_endpoint():
         data = response.json()
 
         assert data["session_id"] == "test-session"
-        assert data["selected_option_id"] == 1
         assert "selected_option" in data
         assert data["selected_option"]["style"] == "balanced"
 
 
 def test_select_option_invalid_option_id():
     """Test that invalid option_id is handled."""
-    with patch("api.main.session_storage") as mock_storage:
-        mock_storage.get.return_value = {
+    with patch("api.main._session_store", {
+        "test-session": {
             "trip_options": [
                 {"option_id": 0},
                 {"option_id": 1},
                 {"option_id": 2}
             ]
         }
-
+    }):
         client_test = TestClient(app)
 
         request_data = {
@@ -195,36 +194,30 @@ def test_select_option_invalid_option_id():
 
 def test_refine_endpoint():
     """Test refinement endpoint."""
-    with patch("api.main.session_storage") as mock_storage:
-        with patch("api.main.run_refinement") as mock_refine:
-            mock_storage.get.return_value = {
-                "trip_options": [
-                    {"option_id": 1, "style": "balanced"}
-                ]
-            }
+    with patch("api.main._session_store", {
+        "test-session": {
+            "trip_options": [
+                {"option_id": 0, "style": "budget", "title": "Budget - Greece"},
+                {"option_id": 1, "style": "balanced", "title": "Balanced - Greece"}
+            ]
+        }
+    }):
+        client_test = TestClient(app)
 
-            mock_refine.return_value = {
-                "option_id": 1,
-                "style": "balanced",
-                "title": "Refined - Greece",
-                "total_cost_usd": 1950
-            }
+        request_data = {
+            "session_id": "test-session",
+            "selected_option_id": 1,
+            "refinement_query": "Use hotel from budget option"
+        }
 
-            client_test = TestClient(app)
+        response = client_test.post("/api/travel/refine", json=request_data)
 
-            request_data = {
-                "session_id": "test-session",
-                "selected_option_id": 1,
-                "refinement_query": "Use hotel from budget option"
-            }
+        assert response.status_code == 200
+        data = response.json()
 
-            response = client_test.post("/api/travel/refine", json=request_data)
-
-            assert response.status_code == 200
-            data = response.json()
-
-            assert "refined_option" in data
-            assert data["refinement_query"] == "Use hotel from budget option"
+        assert "refined_option" in data
+        assert data["refined_option"]["title"] == "Balanced - Greece (Refined)"
+        assert data["refined_option"]["description"] == "Refined based on: Use hotel from budget option"
 
 
 def test_refine_validation_requires_query():

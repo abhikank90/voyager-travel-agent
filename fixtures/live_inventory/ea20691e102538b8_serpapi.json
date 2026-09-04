@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 609.0,
+      "airline": "Tap Air Portugal",
+      "departure": "2026-12-02 19:00",
+      "arrival": "2026-12-03 15:50",
+      "stops": 1,
+      "duration": 830,
+      "duration_minutes": 830
+    },
+    {
+      "price_usd": 712.0,
+      "airline": "United",
+      "departure": "2026-12-02 15:40",
+      "arrival": "2026-12-03 07:45",
+      "stops": 0,
+      "duration": 545,
+      "duration_minutes": 545
+    },
+    {
+      "price_usd": 718.0,
+      "airline": "Aer Lingus",
+      "departure": "2026-12-02 15:55",
+      "arrival": "2026-12-03 10:35",
+      "stops": 1,
+      "duration": 700,
+      "duration_minutes": 700
+    }
+  ]
+}

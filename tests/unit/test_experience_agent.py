@@ -141,3 +141,66 @@ async def test_missing_intent_returns_error():
         agent = ExperienceAgent()
     result = await agent._execute({})
     assert "errors" in result
+
+
+# ── Geocoding (centroid producer) ────────────────────────────────────────────
+
+class _FakeGeoResponse:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+class _FakeGeoClient:
+    def __init__(self, *a, **k):
+        pass
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *a):
+        return False
+
+    async def get(self, url, *a, **k):
+        q = (k.get("params") or {}).get("q", "")
+        if "Oia" in q:
+            return _FakeGeoResponse([{"lat": 36.46, "lon": 25.37, "name": "Oia"}])
+        return _FakeGeoResponse([])
+
+
+@pytest.mark.asyncio
+async def test_geocode_attaches_coordinates(monkeypatch):
+    agent = ExperienceAgent()
+    monkeypatch.setenv("OPENWEATHER_API_KEY", "test-key")
+    monkeypatch.setattr("agents.experience_agent.httpx.AsyncClient", _FakeGeoClient)
+
+    exps = [
+        {"name": "Oia Walk", "location": "Oia, Santorini"},
+        {"name": "Unknown", "location": "nowhere"},
+        {"name": "No Loc", "location": ""},
+    ]
+    await agent._geocode_experiences(exps)
+
+    assert exps[0]["latitude"] == 36.46
+    assert exps[0]["longitude"] == 25.37
+    assert "latitude" not in exps[1]
+    assert "latitude" not in exps[2]
+
+
+@pytest.mark.asyncio
+async def test_geocode_skips_without_api_key(monkeypatch):
+    """Without OPENWEATHER_API_KEY the geocoder must no-op (no network, no crash)
+    so mock/CI paths stay fully offline."""
+    agent = ExperienceAgent()
+    monkeypatch.delenv("OPENWEATHER_API_KEY", raising=False)
+
+    class _Boom:
+        def __init__(self, *a, **k):
+            raise AssertionError("should not construct client without key")
+
+    monkeypatch.setattr("agents.experience_agent.httpx.AsyncClient", _Boom)
+    exps = [{"name": "Oia", "location": "Oia, Santorini"}]
+    await agent._geocode_experiences(exps)
+    assert "latitude" not in exps[0]

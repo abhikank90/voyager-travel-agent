@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp3d278",
+      "name": "Santa Sophia Hotel - \u0130stanbul",
+      "price_per_night_usd": 24.63,
+      "total_usd": 344.79,
+      "rating": 8.1,
+      "amenities": [],
+      "location": "Emin Sinan Mah. Emin Sinan Hamami Sok No:2 Cemberlitas, Istanbul, TR (41.0070,28.9706)",
+      "latitude": 41.00705,
+      "longitude": 28.97057
+    },
+    {
+      "hotel_id": "lp6430f",
+      "name": "The Constantine Hotel",
+      "price_per_night_usd": 32.3,
+      "total_usd": 452.27,
+      "rating": 7.9,
+      "amenities": [],
+      "location": "Alemdar Cad.No:19, Istanbul, TR (41.0121,28.9783)",
+      "latitude": 41.012119,
+      "longitude": 28.978323
+    },
+    {
+      "hotel_id": "lp83112",
+      "name": "Ottoman Elegance Hotel",
+      "price_per_night_usd": 40.38,
+      "total_usd": 565.27,
+      "rating": 9.1,
+      "amenities": [],
+      "location": "Kadirga Meydani Sehsuvarbey Mah. Donus Sok. No: 26,Kucukayasofya,Sultanahmet,, Istanbul, TR (41.0034,28.9692)",
+      "latitude": 41.003409,
+      "longitude": 28.969196
+    },
+    {
+      "hotel_id": "lpbadd0",
+      "name": "Ahmet Efendi Kona\u011f\u0131",
+      "price_per_night_usd": 44.48,
+      "total_usd": 622.73,
+      "rating": 9,
+      "amenities": [],
+      "location": "\u00d6rdekli Bakkal Sokak, Istanbul, TR (41.0040,28.9641)",
+      "latitude": 41.003954,
+      "longitude": 28.964112
+    },
+    {
+      "hotel_id": "lp6557856c",
+      "name": "Castillo Rojo Hotel Istanbul",
+      "price_per_night_usd": 44.95,
+      "total_usd": 629.35,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "\u015eehsuvar Bey Mah. Arapzade Ahmet Sok. No:35/A Kumkap\u0131 Fatih, Istanbul, TR (41.0044,28.9653)",
+      "latitude": 41.004369,
+      "longitude": 28.965259
+    }
+  ]
+}

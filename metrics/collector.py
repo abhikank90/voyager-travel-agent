@@ -23,6 +23,8 @@ from typing import Any
 
 _METRICS_DIR = Path(__file__).parent
 _SESSIONS_FILE = _METRICS_DIR / "sessions.jsonl"
+_RESULTS_DIR = Path(__file__).parent.parent / "results"
+_RESULTS_SCHEMA_VERSION = "2"
 _RESEARCH_AGENTS_COUNT = 5
 
 # Maps each typed conflict to the hub message that carries its evidence payload.
@@ -32,6 +34,30 @@ _CONFLICT_TO_MSG: dict[str, tuple[str, str]] = {
     "timing_inefficiency":       ("flight",     "insight"),
     "weather_activity_mismatch": ("experience", "constraint"),
 }
+
+
+def _default_convergence(run_metrics: dict[str, Any]) -> dict[str, Any]:
+    """Fallback convergence summary for sessions recorded without the tracker.
+
+    Preserves compatibility with older session records that predate the
+    conflict-lifecycle instrumentation.
+    """
+    round_1: list[dict] = run_metrics.get("round_1_conflicts", [])
+    final: list[dict] = run_metrics.get("final_conflicts", [])
+    r1_count = len(round_1)
+    final_count = len(final)
+    resolved = max(0, r1_count - final_count)
+    return {
+        "round_1_conflicts": r1_count,
+        "round_2_conflicts_remaining": None,
+        "round_3_conflicts_remaining": final_count,
+        "resolved_by_round_2": None,
+        "resolved_by_round_3": resolved,
+        "introduced_post_refinement": 0,
+        "reopened": 0,
+        "persisting_at_final_audit": final_count,
+        "converged_round": None,
+    }
 
 
 def record_session(
@@ -53,6 +79,17 @@ def record_session(
 
     # ── Final conflict state (after all refinement rounds) ─────────────────
     final_conflicts: list[dict] = run_metrics.get("final_conflicts", [])
+
+    # ── Lifecycle / churn (computed by the graph's ConflictLifecycleTracker) ──
+    lifecycle: list[dict] = final_state.get("conflict_lifecycle", []) or []
+    introduced: list[dict] = final_state.get("conflicts_introduced", []) or []
+    resolved: list[dict] = final_state.get("conflicts_resolved", []) or []
+    persisting: list[dict] = final_state.get("conflicts_persisting", []) or []
+    reopened: list[dict] = final_state.get("conflicts_reopened", []) or []
+    convergence = run_metrics.get("convergence_summary", _default_convergence(run_metrics))
+    llm_candidates: list[dict] = final_state.get("llm_candidate_conflicts", []) or []
+    validated: list[dict] = final_state.get("validated_llm_conflicts", []) or []
+    unverified: list[dict] = final_state.get("unverified_llm_conflicts", []) or []
 
     # ── Conflict resolution rate ───────────────────────────────────────────
     r1_count = len(round_1_conflicts)
@@ -157,6 +194,32 @@ def record_session(
         "budget_ok": final_state.get("budget_ok", False),
         "budget_retry_count": final_state.get("budget_retry_count", 0),
         "errors": list((final_state.get("errors") or {}).keys()),
+
+        # Schema version — makes later analysis scripts safe against drift
+        "results_schema_version": _RESULTS_SCHEMA_VERSION,
+
+        # ── Conflict churn & convergence ──────────────────────────────────
+        "convergence_summary": convergence,
+        "conflicts_introduced_count": len(introduced),
+        "lifecycle_resolved_total": len(resolved),
+        "conflicts_persisting_count": len(persisting),
+        "conflicts_reopened_count": len(reopened),
+        "conflict_lifecycle": lifecycle,
+        "conflicts_introduced": introduced,
+        "conflicts_resolved": resolved,
+        "conflicts_persisting": persisting,
+        "conflicts_reopened": reopened,
+
+        # ── Hybrid detector isolation ─────────────────────────────────────
+        "llm_candidate_conflicts": llm_candidates,
+        "validated_llm_conflicts": validated,
+        "unverified_llm_conflicts": unverified,
+        "llm_candidate_count": len(llm_candidates),
+        "validated_llm_count": len(validated),
+        "unverified_llm_count": len(unverified),
+
+        # ── Unsatisfiable feedback conditions ─────────────────────────────
+        "feedback_metrics": final_state.get("feedback_metrics", {}),
     }
 
     _SESSIONS_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -250,6 +313,35 @@ def print_summary() -> None:
         print(f"  Avg Round-1 conflicts/query   {avg_r1_count}")
         print(f"  Avg final conflicts/query     {avg_final}")
 
+        # ── Churn & convergence (full mode only) ──────────────────────────
+        converged = [
+            s["convergence_summary"]["converged_round"]
+            for s in sessions
+            if s.get("convergence_summary", {}).get("converged_round") is not None
+        ]
+        introduced = [s["conflicts_introduced_count"] for s in sessions]
+        reopened = [s["conflicts_reopened_count"] for s in sessions]
+        if converged:
+            print("\n  CONVERGENCE  (full mode only)")
+            print(f"  Mean convergence round           {_avg(converged, 2)}")
+            r1_only = sum(
+                1 for s in sessions
+                if s.get("convergence_summary", {}).get("converged_round") == 1
+            )
+            r2_conv = sum(
+                1 for s in sessions
+                if s.get("convergence_summary", {}).get("converged_round") == 2
+            )
+            r3_conv = sum(
+                1 for s in sessions
+                if s.get("convergence_summary", {}).get("converged_round") == 3
+            )
+            print(f"  Converged after Round 1         {r1_only}/{n}")
+            print(f"  Converged after Round 2         {r2_conv}/{n}")
+            print(f"  Converged after Round 3         {r3_conv}/{n}")
+            print(f"  Post-refinement introductions   {sum(introduced)} total ({_avg(introduced, 2)}/query)")
+            print(f"  Reopened conflicts              {sum(reopened)} total ({_avg(reopened, 2)}/query)")
+
         costs = [s["estimated_cost_usd"] for s in sessions if s.get("estimated_cost_usd")]
         if costs:
             print("\n  TOKEN USAGE")
@@ -311,3 +403,189 @@ def print_summary() -> None:
         print(f"  {'Avg duration / query (s)':<36} {_fmt(bd, 's'):>10} {_fmt(fd, 's'):>10}")
 
     print(f"\n{'='*58}\n")
+
+
+# ── Standardized results output ──────────────────────────────────────────────
+def compute_aggregate_summary(sessions: list[dict], inventory_mode: str = "mock") -> dict[str, Any]:
+    """Aggregate benchmark metrics across a set of sessions.
+
+    Fields mirror Priority-4 recommendations so `run_summary.json` carries the
+    article-ready numbers (mean conflicts per round, resolution rate,
+    post-refinement introduction rate, reopened rate, convergence distribution).
+    """
+    full = [s for s in sessions if s.get("mode") == "full"]
+    baseline = [s for s in sessions if s.get("mode") == "baseline"]
+
+    def _round_means(mode_sessions: list[dict]) -> dict[str, Any]:
+        n = len(mode_sessions)
+        conv = [s.get("convergence_summary", {}) for s in mode_sessions]
+        r1 = [c.get("round_1_conflicts", 0) for c in conv if c.get("round_1_conflicts") is not None]
+        r2 = [c.get("round_2_conflicts_remaining") for c in conv if c.get("round_2_conflicts_remaining") is not None]
+        r3 = [c.get("round_3_conflicts_remaining") for c in conv if c.get("round_3_conflicts_remaining") is not None]
+        return {
+            "query_count": n,
+            "mean_round_1_conflicts": _avg(r1, 2),
+            "mean_round_2_conflicts_remaining": _avg([x for x in r2 if x is not None], 2),
+            "mean_round_3_conflicts_remaining": _avg(r3, 2),
+            "mean_introduced": _avg([s.get("conflicts_introduced_count", 0) for s in mode_sessions], 2),
+            "mean_reopened": _avg([s.get("conflicts_reopened_count", 0) for s in mode_sessions], 2),
+            "mean_persistence": _avg(
+                [r.get("persistence_count", 0) for s in mode_sessions for r in s.get("conflict_lifecycle", [])], 2
+            ),
+        }
+
+    resolution_rates = [
+        s.get("conflict_resolution_rate_pct")
+        for s in full
+        if s.get("conflict_resolution_rate_pct") is not None
+    ]
+    conv_rounds = [
+        s.get("convergence_summary", {}).get("converged_round")
+        for s in full
+        if s.get("convergence_summary", {}).get("converged_round") is not None
+    ]
+
+    return {
+        "results_schema_version": _RESULTS_SCHEMA_VERSION,
+        "inventory_mode": inventory_mode,
+        "query_count": len(sessions),
+        "mode": "compare" if full and baseline else ("full" if full else "baseline"),
+        "mean_final_conflicts": _avg([s.get("final_conflict_count", 0) for s in full], 2),
+        "resolution_rate_pct": _avg(resolution_rates, 1),
+        "post_refinement_introduction_rate_pct": _pct(
+            sum(s.get("conflicts_introduced_count", 0) for s in full), max(len(full), 1)
+        ),
+        "reopened_conflict_rate_pct": _pct(
+            sum(s.get("conflicts_reopened_count", 0) for s in full), max(len(full), 1)
+        ),
+        "mean_reexecuted_agents": _avg(
+            [s.get("round_2_agents_rerun_count", 0) + s.get("round_3_agents_rerun_count", 0) for s in full], 2
+        ),
+        "agent_call_savings_vs_full_rerun_pct": _avg(
+            [
+                s.get("selective_rerun_savings_pct", 0)
+                for s in full
+                if s.get("round_2_triggered") or s.get("round_3_triggered")
+            ],
+            1,
+        ),
+        "converged_after_round_1_pct": _pct(sum(1 for r in conv_rounds if r == 1), max(len(full), 1)),
+        "converged_after_round_2_pct": _pct(sum(1 for r in conv_rounds if r == 2), max(len(full), 1)),
+        "converged_after_round_3_pct": _pct(sum(1 for r in conv_rounds if r == 3), max(len(full), 1)),
+        # True rate: share of queries with ≥1 persisting conflict at the final
+        # audit (per-query counts summed here would exceed 100%).
+        "final_unresolved_conflict_rate_pct": _pct(
+            sum(
+                1
+                for s in full
+                if s.get("convergence_summary", {}).get("persisting_at_final_audit", 0) > 0
+            ),
+            max(len(full), 1),
+        ),
+        "unsatisfiable_constraint_rate_pct": _pct(
+            sum(
+                1
+                for s in full
+                if s.get("feedback_metrics", {}).get("fallback_to_original_selection")
+            ),
+            max(len(full), 1),
+        ),
+        "full": _round_means(full),
+        "baseline": _round_means(baseline),
+    }
+
+
+def write_results_artifacts(
+    sessions: list[dict],
+    inventory_manifest: dict[str, Any] | None = None,
+    out_dir: str | None = None,
+    inventory_mode: str = "mock",
+) -> Path:
+    """Write the standardized results files for a benchmark run.
+
+    Produces, under ``results/``:
+      - run_summary.json        — aggregate metrics + schema version
+      - conflicts_by_round.csv  — per-session round conflict counts
+      - conflict_lifecycle.csv  — per-conflict lifecycle transitions
+      - hybrid_candidates.csv   — LLM candidate isolation counts
+      - inventory_manifest.json — capture/replay manifest (if provided)
+    """
+    import csv
+
+    results_dir = Path(out_dir) if out_dir else _RESULTS_DIR
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    (results_dir / "run_summary.json").write_text(
+        json.dumps(compute_aggregate_summary(sessions, inventory_mode=inventory_mode), indent=2) + "\n"
+    )
+
+    # conflicts_by_round.csv
+    with open(results_dir / "conflicts_by_round.csv", "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "session_id", "mode",
+                "round_1_conflicts", "round_2_conflicts_remaining", "round_3_conflicts_remaining",
+                "final_conflicts", "converged_round",
+            ],
+        )
+        writer.writeheader()
+        for s in sessions:
+            conv = s.get("convergence_summary", {}) or {}
+            writer.writerow({
+                "session_id": s.get("session_id", ""),
+                "mode": s.get("mode", ""),
+                "round_1_conflicts": s.get("round_1_conflict_count", 0),
+                "round_2_conflicts_remaining": conv.get("round_2_conflicts_remaining", ""),
+                "round_3_conflicts_remaining": conv.get("round_3_conflicts_remaining", ""),
+                "final_conflicts": s.get("final_conflict_count", 0),
+                "converged_round": conv.get("converged_round", ""),
+            })
+
+    # conflict_lifecycle.csv
+    with open(results_dir / "conflict_lifecycle.csv", "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "session_id", "fingerprint", "type", "agents", "status",
+                "first_seen_round", "last_seen_round", "resolved_in_round", "persistence_count",
+            ],
+        )
+        writer.writeheader()
+        for s in sessions:
+            for rec in s.get("conflict_lifecycle", []) or []:
+                writer.writerow({
+                    "session_id": s.get("session_id", ""),
+                    "fingerprint": rec.get("fingerprint", ""),
+                    "type": rec.get("type", ""),
+                    "agents": "|".join(rec.get("agents", [])),
+                    "status": rec.get("status", ""),
+                    "first_seen_round": rec.get("first_seen_round", ""),
+                    "last_seen_round": rec.get("last_seen_round", ""),
+                    "resolved_in_round": rec.get("resolved_in_round", ""),
+                    "persistence_count": rec.get("persistence_count", ""),
+                })
+
+    # hybrid_candidates.csv
+    with open(results_dir / "hybrid_candidates.csv", "w", newline="") as f:
+        writer = csv.DictWriter(
+            f,
+            fieldnames=["session_id", "mode", "llm_candidates", "validated", "unverified"],
+        )
+        writer.writeheader()
+        for s in sessions:
+            writer.writerow({
+                "session_id": s.get("session_id", ""),
+                "mode": s.get("mode", ""),
+                "llm_candidates": s.get("llm_candidate_count", 0),
+                "validated": s.get("validated_llm_count", 0),
+                "unverified": s.get("unverified_llm_count", 0),
+            })
+
+    # inventory_manifest.json
+    if inventory_manifest is not None:
+        (results_dir / "inventory_manifest.json").write_text(
+            json.dumps(inventory_manifest, indent=2) + "\n"
+        )
+
+    return results_dir

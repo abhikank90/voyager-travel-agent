@@ -1,0 +1,37 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp6559578d",
+      "name": "Millers Flat Holiday Park",
+      "price_per_night_usd": 53.59,
+      "total_usd": 750.32,
+      "rating": 8.9,
+      "amenities": [],
+      "location": "1672 Teviot Road, Millers Flat, NZ (-45.6617,169.4102)",
+      "latitude": -45.661708,
+      "longitude": 169.410215
+    },
+    {
+      "hotel_id": "lp655acbb9",
+      "name": "Beaumont Hotel and Holiday Park",
+      "price_per_night_usd": 79.4,
+      "total_usd": 1111.58,
+      "rating": 8.3,
+      "amenities": [],
+      "location": "Beaumont Highway 1897 1897 State Highway 8, Beaumont, RD 1, Lawrence, NZ (-45.8182,169.5238)",
+      "latitude": -45.81816,
+      "longitude": 169.523817
+    },
+    {
+      "hotel_id": "lp655bf28e",
+      "name": "Benger Garden Chalets",
+      "price_per_night_usd": 128.52,
+      "total_usd": 1799.22,
+      "rating": 9.5,
+      "amenities": [],
+      "location": "5095 Roxburgh Ettrick Road RD2, Millers Flat, NZ (-45.6338,169.3634)",
+      "latitude": -45.633758,
+      "longitude": 169.36341
+    }
+  ]
+}

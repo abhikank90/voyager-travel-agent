@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 794.0,
+      "airline": "Air France",
+      "departure": "2026-12-02 18:30",
+      "arrival": "2026-12-03 17:55",
+      "stops": 1,
+      "duration": 925,
+      "duration_minutes": 925
+    },
+    {
+      "price_usd": 794.0,
+      "airline": "Delta",
+      "departure": "2026-12-02 19:00",
+      "arrival": "2026-12-03 17:55",
+      "stops": 1,
+      "duration": 895,
+      "duration_minutes": 895
+    },
+    {
+      "price_usd": 801.0,
+      "airline": "LOT",
+      "departure": "2026-12-02 22:35",
+      "arrival": "2026-12-04 14:00",
+      "stops": 1,
+      "duration": 1885,
+      "duration_minutes": 1885
+    }
+  ]
+}

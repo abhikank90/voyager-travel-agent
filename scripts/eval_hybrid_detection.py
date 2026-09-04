@@ -168,6 +168,31 @@ def types_of(conflicts):
     return Counter(c.get("type", "?") for c in conflicts)
 
 
+def _to_candidates(conflicts):
+    """Convert the eval LLM dicts into strict ``ConflictCandidate`` objects.
+
+    Returns ``None`` for a schema-invalid conflict (missing type/agents).
+    """
+    from agents.hybrid_conflict_detector import ConflictCandidate
+
+    candidates = []
+    for c in conflicts:
+        if not isinstance(c, dict) or "type" not in c or "agents" not in c:
+            continue
+        try:
+            candidates.append(ConflictCandidate(
+                conflict_type=c.get("type", ""),
+                agents=c.get("agents", []) if isinstance(c.get("agents"), list) else [],
+                hypothesis=c.get("description", ""),
+                evidence=[c.get("description", "")],
+                suggested_rule=None,
+                confidence=float(c.get("confidence", 0.5)),
+            ))
+        except Exception:
+            continue
+    return candidates
+
+
 def main():
     if not os.getenv("ANTHROPIC_API_KEY"):
         sys.exit("Set ANTHROPIC_API_KEY first.")
@@ -175,9 +200,20 @@ def main():
     client = Anthropic()
     hub = build_rules_hub()
 
+    from agents.hybrid_conflict_detector import HybridConflictDetector
+    detector = HybridConflictDetector(hub)
+
     states = make_states()
     print(f"Model under test: {model}\n{'=' * 78}")
 
+    # ── Aggregate counters (Priority 2.5 expanded output) ──────────────────
+    total_rule_conflicts = 0
+    total_llm_candidates = 0
+    exact_agreement = 0          # LLM candidate type exactly matches a rule type
+    missed_by_llm = 0            # rule conflict with no LLM candidate touching it
+    extra_llm_candidates = 0     # LLM candidates whose type the rules did NOT emit
+    validated_extra = 0          # extras accepted by a deterministic validator
+    unverified_extra = 0         # extras rejected by every validator
     consistent = 0
     agree_on_rule_conflicts = 0
     rule_conflict_states = 0
@@ -186,6 +222,8 @@ def main():
     for name, state, human_truth in states:
         rules = hub.detect_conflicts_only(state)
         rule_types = set(types_of(rules))
+        rule_agents = {a for c in rules for a in c.get("agents", [])}
+        total_rule_conflicts += len(rules)
 
         run1 = llm_detect(client, model, state)
         run2 = llm_detect(client, model, state)
@@ -193,23 +231,32 @@ def main():
         is_consistent = set(t1) == set(t2)
         consistent += is_consistent
 
-        # Agreement: on states where rules fire, does the LLM flag something
-        # involving the same agents/issue? (type labels will differ; compare
-        # by whether LLM found >=1 conflict touching the same agent set)
+        llm_types = set(t1)
+        llm_agents = {a for c in run1 for a in c.get("agents", [])}
+        total_llm_candidates += len(run1)
+
+        # Agreement + extras vs rules
         if rules:
             rule_conflict_states += 1
-            rule_agents = {a for c in rules for a in c.get("agents", [])}
-            llm_agents = {a for c in run1 for a in c.get("agents", [])}
             if rule_agents & llm_agents:
                 agree_on_rule_conflicts += 1
 
-        # Recall gain: states where rules find nothing but a human would
+        exact_agreement += len(rule_types & llm_types)
+        missed_by_llm += len(rule_types - llm_types)
+        extra_types = llm_types - rule_types
+        extra_llm_candidates += len(extra_types)
+
+        # ── Deterministic validation of *extra* candidates ─────────────────
+        candidates = _to_candidates(run1)
+        extras = [c for c in candidates if c.conflict_type in extra_types]
+        validated, unverified = detector.validate(extras, state)
+        validated_extra += len(validated)
+        unverified_extra += len(unverified)
+
+        # Recall gain / noise (unchanged semantics)
         if not rules and human_truth:
             if run1:
                 novel_real += 1
-            else:
-                novel_noise += 0  # miss
-        # Noise: clean state but LLM invents conflicts
         if not rules and not human_truth and run1:
             novel_noise += 1
 
@@ -222,18 +269,37 @@ def main():
     n = len(states)
     probes = sum(1 for _, s, t in states
                  if t and not build_rules_hub().detect_conflicts_only(s))
+
+    # ── Precision / recall / FPR over candidate counts ─────────────────────
+    precision = round(exact_agreement / total_llm_candidates, 3) if total_llm_candidates else 0.0
+    recall = round(exact_agreement / total_rule_conflicts, 3) if total_rule_conflicts else 0.0
+    fpr = round(unverified_extra / total_llm_candidates, 3) if total_llm_candidates else 0.0
+    self_consistency = round(consistent / n, 3) if n else 0.0
+
     print(f"\n{'=' * 78}\nSUMMARY")
-    print(f"  LLM self-consistency (same conflict set twice): {consistent}/{n}")
-    if rule_conflict_states:
-        print(f"  LLM agreement on rule-detected conflicts:       "
-              f"{agree_on_rule_conflicts}/{rule_conflict_states}")
-    print(f"  Rule-invisible conflicts caught by LLM:          {novel_real}/{probes}")
-    print(f"  Hallucinated conflicts on clean states:          {novel_noise}")
+    print(f"  rule_conflicts:            {total_rule_conflicts}")
+    print(f"  llm_candidates:            {total_llm_candidates}")
+    print(f"  exact_agreement:           {exact_agreement}")
+    print(f"  missed_by_llm:             {missed_by_llm}")
+    print(f"  extra_llm_candidates:      {extra_llm_candidates}")
+    print(f"  validated_extra_conflicts: {validated_extra}")
+    print(f"  unverified_extra_candidates: {unverified_extra}")
+    print(f"  precision:                 {precision}")
+    print(f"  recall:                    {recall}")
+    print(f"  false_positive_rate:       {fpr}")
+    print(f"  self_consistency:          {self_consistency}")
+    print(f"  (LLM agreement on rule-detected conflicts: "
+          f"{agree_on_rule_conflicts}/{rule_conflict_states})")
+    print(f"  (Rule-invisible conflicts caught by LLM: {novel_real}/{probes})")
+    print(f"  (Hallucinated conflicts on clean states: {novel_noise})")
+
     print("\nInterpretation guide:")
     print("  consistency < n      → LLM-only routing would be nondeterministic;")
     print("                         rules must stay as the routing layer (hybrid).")
     print("  recall gain > 0      → LLM adds real coverage → hybrid is justified")
     print("                         as 'LLM proposes, rules/schema validate'.")
+    print("  validated_extra      → extras that earned routing authority via rules.")
+    print("  unverified_extra     → extras that must NOT route (false-positive risk).")
     print("  hallucinations > 0   → unvalidated LLM detection would trigger")
     print("                         unnecessary re-runs and inflate cost.")
 

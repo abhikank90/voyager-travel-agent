@@ -1,6 +1,7 @@
 import logging
 import time
 from abc import ABC, abstractmethod
+from datetime import date
 
 from langsmith import traceable
 
@@ -65,3 +66,12 @@ class BaseAgent(ABC):
 
     def _error_state(self, message: str) -> dict:
         return {"errors": {self.name: message}}
+
+    def _effective_dates(self, travel_year: int, duration_days: int = 13) -> tuple[str, str]:
+        """Capture/live modes need future-dated inventory queries; mock keeps the
+        intent-derived dates so the synthetic benchmark stays comparable."""
+        from datetime import timedelta
+        if self._inventory_mode() in ("capture", "replay"):
+            start = date.today() + timedelta(days=90)
+            return start.isoformat(), (start + timedelta(days=duration_days)).isoformat()
+        return f"{travel_year}-07-01", f"{travel_year}-07-14"
