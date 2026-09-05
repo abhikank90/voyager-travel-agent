@@ -195,7 +195,12 @@ A real trace from the live capture benchmark (Greece, $2,000, beaches and local 
 
 ## System Architecture
 
-<img src="'docs/diagrams/voyager-arch.png.png'" alt="Voyager Travel Agent - System Architecture" width="100%">
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/diagrams/voyager-arch-dark.png">
+    <img src="docs/diagrams/voyager-arch.png" alt="Voyager System Architecture" width="80%">
+  </picture>
+</p>
 
 **The application around the pattern:** Voyager is a full-stack travel planner producing three trip variants (budget / balanced / premium) with day-by-day itineraries and booking links.
 
