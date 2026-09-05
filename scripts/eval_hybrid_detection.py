@@ -11,7 +11,8 @@ collaboration_hub._identify_conflicts):
 
 Usage:
     ANTHROPIC_API_KEY=sk-... python scripts/eval_hybrid_detection.py
-    # optional: HYBRID_EVAL_MODEL=claude-haiku-4-5-20251001 to test a cheaper detector
+    # optional: HYBRID_EVAL_MODEL=claude-haiku-4-5-20251001 to test a cheaper detector;
+    # default matches the benchmark (claude-sonnet-4-6)
 
 Cost: ~16 LLM calls (8 states x 2 runs), small prompts. A few cents.
 """
@@ -196,7 +197,7 @@ def _to_candidates(conflicts):
 def main():
     if not os.getenv("ANTHROPIC_API_KEY"):
         sys.exit("Set ANTHROPIC_API_KEY first.")
-    model = os.getenv("HYBRID_EVAL_MODEL", "claude-sonnet-4-5-20250929")
+    model = os.getenv("HYBRID_EVAL_MODEL", "claude-sonnet-4-6")
     client = Anthropic()
     hub = build_rules_hub()
 
