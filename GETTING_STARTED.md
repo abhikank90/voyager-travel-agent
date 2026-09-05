@@ -24,11 +24,13 @@ Voyager is a **collaborative multi-agent travel planning system** built on [Lang
 
 **Multi-Round Refinement** - Up to 3 rounds of collaboration ensure optimal recommendations
 
-**Direct Booking Links** - One-click access to book flights (Google Flights), hotels (Booking.com), and experiences (GetYourGuide)
+**Direct Booking Links** - One-click access to book flights (Google Flights), hotels (Nuitee), and experiences (GetYourGuide)
 
 **Follow-up Refinements** - "Use the hotel from option 3" or "Add more museums" - the system adapts
 
 **Real-time Transparency** - Watch agents collaborate live in the UI
+
+**Live Inventory Benchmarking** - Capture real API responses, replay them deterministically, and measure conflict resolution with content-addressed conflict fingerprints
 
 ---
 
@@ -139,15 +141,18 @@ API docs at [http://localhost:8000/docs](http://localhost:8000/docs)
 ```
 voyager-travel-agent/
 ├── agents/                         # Agent implementations
-│   ├── base_agent.py               # Abstract base with tracing
+│   ├── base_agent.py               # Abstract base with tracing + shared date logic
 │   ├── intent_parser.py            # Query → structured TravelIntent
-│   ├── flight_agent.py             # Flight search (Amadeus API)
-│   ├── hotel_agent.py              # Hotel search (Booking.com API)
-│   ├── experience_agent.py         # Activity recommendations (Claude + RAG)
-│   ├── weather_agent.py            # Weather data (OpenWeather API)
+│   ├── flight_agent.py             # Flight search (SerpApi Google Flights)
+│   ├── hotel_agent.py              # Hotel search (Nuitee / LiteAPI)
+│   ├── experience_agent.py         # Activity recommendations (Claude + RAG + geocoding)
+│   ├── weather_agent.py            # Weather data (OpenWeather One Call API)
 │   ├── visa_safety_agent.py        # Visa/safety info (DuckDuckGo + Claude)
-│   ├── collaboration_hub.py        # 🆕 Coordinates agent collaboration
-│   ├── option_generator.py         # 🆕 Generates 3 trip variants
+│   ├── collaboration_hub.py        # Coordinates agent collaboration + conflict detection
+│   ├── conflicts.py                # Conflict fingerprint identity + lifecycle tracker
+│   ├── hybrid_conflict_detector.py # LLM conflict proposer with rule validation (flag-gated)
+│   ├── inventory.py                # Capture/replay/mock fixture management
+│   ├── option_generator.py         # Generates 3 trip variants
 │   ├── budget_guardrail.py         # Cost validation
 │   ├── itinerary_builder.py        # Synthesis (legacy)
 │   └── personalisation.py          # User profile loading
@@ -157,8 +162,13 @@ voyager-travel-agent/
 │   └── travel_graph.py             # LangGraph multi-round state machine
 │
 ├── config/
-│   ├── api_config.py               # 🆕 Centralized API configuration
+│   ├── api_config.py               # External API credentials and endpoints
+│   ├── settings.py                 # Runtime behavior settings (inventory mode, LLM flags)
 │   └── __init__.py
+│
+├── metrics/
+│   ├── collector.py                # Benchmark session recording + aggregation
+│   └── token_tracker.py            # Per-model token usage + cost tracking
 │
 ├── api/
 │   └── main.py                     # FastAPI + WebSocket (collaborative endpoints)
@@ -166,18 +176,15 @@ voyager-travel-agent/
 ├── frontend/
 │   └── src/
 │       ├── components/
-│       │   ├── CollaborativeChatInterface.tsx   # 🆕 Main UI orchestrator
-│       │   ├── TripOptionCard.tsx               # 🆕 Single option display
-│       │   ├── OptionSelector.tsx               # 🆕 3-option comparison
-│       │   ├── DetailedItineraryView.tsx        # 🆕 Full itinerary + bookings
-│       │   ├── CollaborationFeed.tsx            # 🆕 Agent messages
+│       │   ├── CollaborativeChatInterface.tsx   # Main UI orchestrator
+│       │   ├── TripOptionCard.tsx               # Single option display
+│       │   ├── OptionSelector.tsx               # 3-option comparison
+│       │   ├── DetailedItineraryView.tsx        # Full itinerary + bookings
+│       │   ├── CollaborationFeed.tsx            # Agent messages
 │       │   ├── AgentStatusPanel.tsx             # Progress tracking
 │       │   ├── BudgetTracker.tsx                # Budget visualization
 │       │   ├── ItineraryCard.tsx                # Day-by-day display
-│       │   └── __tests__/                       # Component tests (3 files, ~30 tests)
-│       │       ├── TripOptionCard.test.tsx
-│       │       ├── OptionSelector.test.tsx
-│       │       └── CollaborationFeed.test.tsx
+│       │   └── __tests__/                       # Component tests
 │       ├── hooks/
 │       │   └── useWebSocket.ts                  # WebSocket hook
 │       ├── types/
@@ -188,20 +195,34 @@ voyager-travel-agent/
 ├── data/knowledge_base/
 │   └── destinations.json           # Destination data for RAG
 │
+├── fixtures/
+│   └── live_inventory/             # Captured real API responses (hash-verified)
+│       └── manifest.json           # Fixture hashes + capture metadata
+│
+├── results/                        # Benchmark artifacts (written by benchmark runs)
+│   ├── run_summary.json            # Aggregate metrics
+│   ├── conflicts_by_round.csv      # Per-session round conflict counts
+│   ├── conflict_lifecycle.csv      # Per-conflict identity + transitions
+│   └── hybrid_candidates.csv       # LLM candidate isolation counts
+│
 ├── tests/
-│   ├── unit/                       # Agent unit tests (10 files, ~90 tests)
+│   ├── unit/                       # Agent unit tests
 │   │   ├── test_collaboration_hub.py
+│   │   ├── test_conflicts.py
 │   │   ├── test_option_generator.py
 │   │   ├── test_flight_agent.py
 │   │   ├── test_hotel_agent.py
-│   │   └── ... (6 more)
-│   └── integration/                # API & graph tests (2 files, ~20 tests)
+│   │   └── ... (more)
+│   └── integration/                # API & graph tests
 │       ├── test_api_endpoints.py
-│       └── test_graph.py
+│       ├── test_graph.py
+│       └── test_selective_reexecution.py
 │
 ├── scripts/
 │   ├── local_dev.sh                # One-command local start
-│   ├── run_all_tests.sh            # 🆕 Comprehensive test runner
+│   ├── run_all_tests.sh            # Comprehensive test runner
+│   ├── benchmark_queries.py        # Benchmark runner (mock/capture/replay)
+│   ├── eval_hybrid_detection.py    # Hybrid LLM detector evaluation
 │   └── seed_knowledge_base.py      # Populate vector DB
 │
 ├── infra/
@@ -209,15 +230,13 @@ voyager-travel-agent/
 │   └── docker/                     # Dockerfiles
 │
 ├── .env.example                    # Environment variables template
-├── pytest.ini                      # 🆕 Pytest configuration
-├── .coveragerc                     # 🆕 Coverage configuration
+├── pytest.ini                      # Pytest configuration
+├── .coveragerc                     # Coverage configuration
 ├── pyproject.toml                  # Python dependencies
 ├── docker-compose.yml              # Local development stack
 ├── ARCHITECTURE.md                 # 📖 System architecture documentation
 ├── API_REQUIREMENTS.md             # 📖 External API documentation
-├── TESTING.md                      # 📖 🆕 Comprehensive testing guide
-├── IMPLEMENTATION_SUMMARY.md       # 📖 Developer handoff guide
-├── CLAUDE.md                       # 📖 Claude Code development guide
+├── TESTING.md                      # 📖 Comprehensive testing guide
 └── README.md                       # This file
 ```
 
@@ -234,14 +253,59 @@ All configuration via environment variables (`.env` file):
 | `ALLOWED_ORIGINS` | No | CORS allowed origins (default: localhost:5173,3000) |
 | `LANGSMITH_API_KEY` | No | LangSmith tracing for debugging |
 | `LANGCHAIN_TRACING_V2` | No | Enable tracing (`true`/`false`) |
-| `AMADEUS_API_KEY` | No | Real flight data (mock if absent) |
-| `AMADEUS_API_SECRET` | No | Required with Amadeus key |
-| `BOOKING_API_KEY` | No | Real hotel data (mock if absent) |
-| `OPENWEATHER_API_KEY` | No | Real weather (mock if absent) |
+| `SERPAPI_API_KEY` | No | Real flight data via Google Flights (mock if absent) |
+| `NUITEE_API_KEY` | No | Real hotel data via LiteAPI (mock if absent) |
+| `OPENWEATHER_API_KEY` | No | Real weather via One Call 3.0 (historical averages if absent) |
+| `VOYAGER_INVENTORY_MODE` | No | Inventory provider mode: `mock` (default), `capture`, `replay` |
+| `VOYAGER_INVENTORY_DIR` | No | Fixture directory (default: `fixtures/live_inventory`) |
 | `AWS_ACCESS_KEY_ID` | No | For DynamoDB user profiles |
 | `DYNAMODB_TABLE` | No | User profiles table name |
 
 **See `API_REQUIREMENTS.md` for detailed API documentation.**
+
+---
+
+## Benchmarking
+
+Voyager includes a deterministic benchmarking system that measures multi-agent conflict resolution across mock, live, and replayed inventory.
+
+### Quick Start
+
+```bash
+# Mock — fully offline, deterministic (no travel API keys needed)
+python scripts/benchmark_queries.py --mode compare --inventory mock
+
+# Capture — hits real APIs, saves hash-verified fixtures
+python scripts/benchmark_queries.py --mode compare --inventory capture --query-count 12
+
+# Replay — re-runs against captured fixtures (must run the SAME DAY as capture)
+python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12
+
+# Print summary of existing recorded sessions
+python scripts/benchmark_queries.py --summary
+```
+
+### What It Measures
+
+- **Conflict detection rate**: How often Round 1 produces conflicts
+- **Resolution rate**: How often targeted feedback resolves them
+- **Convergence**: Which round the system converges (R1/R2/R3)
+- **Churn**: Post-refinement introductions and reopens (via content-addressed fingerprints)
+- **Efficiency**: Agent-call savings vs. full re-execution
+- **Cost**: Token usage and per-query cost
+
+### Key Concepts
+
+- **Content-addressed fingerprints**: Every conflict gets a stable identity from its type, agents, and normalized evidence data — so the lifecycle tracker can distinguish "same conflict persisting" from "new conflict introduced" across rounds
+- **Capture/Replay**: Fixtures are hash-verified and date-keyed. Replay must run the same day as capture, because effective trip dates are derived from the capture date
+- **Sharding**: Use `VOYAGER_QUERY_OFFSET=N` to parallelize long benchmark runs across terminals
+
+### Hybrid LLM Detector Evaluation
+
+```bash
+# Evaluate the LLM conflict proposer against deterministic rule-based detection
+python scripts/eval_hybrid_detection.py
+```
 
 ---
 
@@ -339,14 +403,14 @@ open coverage/index.html
 ```
 
 **Test Coverage:**
-- **150+ tests** across backend and frontend
-- **~75% overall coverage** (target: ≥70%)
+- **200+ tests** across backend and frontend
+- **~85% backend coverage** (target: ≥70%)
 - See **[TESTING.md](TESTING.md)** for comprehensive testing guide
 
 **Test Structure:**
-- `tests/unit/` - Agent unit tests (10 files, ~90 tests)
-- `tests/integration/` - API & graph tests (2 files, ~20 tests)
-- `frontend/src/components/__tests__/` - Component tests (3 files, ~30 tests)
+- `tests/unit/` - Agent unit tests (including conflict fingerprint/lifecycle tests)
+- `tests/integration/` - API, graph & selective re-execution tests
+- `frontend/src/components/__tests__/` - Component tests
 
 ### Lint & Format
 
@@ -491,6 +555,19 @@ Agents don't just run once — they iterate:
 - **Weather conflicts**: Outdoor activities during rainy season
 - **Budget pressure**: Spending too much on flights vs experiences
 
+### Conflict Identity & Lifecycle Tracking
+
+Every conflict gets a **content-addressed fingerprint** — a SHA-256 digest over its type, agents, and normalized evidence data (never prose). This enables:
+
+- **Stable identity across rounds**: The same logical conflict keeps the same fingerprint when it reappears after refinement
+- **Per-query distinction**: Two different queries' location mismatches have different fingerprints (different activity locations → different identity)
+- **Lifecycle classification**: Each conflict is tracked as `new`, `persisting`, `resolved`, or `reopened`
+- **Honest churn measurement**: Post-refinement introductions and reopens are measured, not masked
+
+### Typed Constraints with Geocoded Evidence
+
+The collaboration hub sends **typed constraint payloads**, not prose: activity centroids computed from geocoded experience coordinates, structured arrival-time preferences, and weather advisory labels. Consumers (hotel, flight agents) apply these via distance-based matching against real inventory coordinates — substring matching against human-readable location strings does not survive contact with real hotel-inventory payloads.
+
 ### Option Generation Strategy
 
 **Budget (75% of budget)**:
@@ -535,6 +612,8 @@ Agents don't just run once — they iterate:
 - [ ] Group trip planning with voting
 - [ ] AI-powered packing list generation
 - [ ] Evaluation suite for collaboration quality
+- [ ] Adaptive constraint relaxation for unsatisfiable conflicts
+- [ ] Validators for LLM-proposed conflict types (visa timing, dietary, etc.)
 
 ---
 
@@ -543,12 +622,9 @@ Agents don't just run once — they iterate:
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Complete system architecture
 - **[API_REQUIREMENTS.md](API_REQUIREMENTS.md)** - External API documentation
 - **[TESTING.md](TESTING.md)** - Comprehensive testing guide
-- **[IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md)** - Developer handoff guide
-- **[CLAUDE.md](CLAUDE.md)** - Claude Code development guide
 
 ---
 
 ## License
 MIT
 ---
-

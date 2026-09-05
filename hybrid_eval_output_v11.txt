@@ -1,0 +1,77 @@
+Model under test: claude-sonnet-4-6
+==============================================================================
+
+[clean_no_conflicts]
+  rules : —
+  llm r1: —
+  llm r2: —   consistent=True
+  human : —
+
+[location_mismatch]
+  rules : ['location_mismatch']
+  llm r1: —
+  llm r2: —   consistent=True
+  human : ['location_mismatch']
+
+[late_arrival_timing]
+  rules : ['timing_inefficiency']
+  llm r1: —
+  llm r2: —   consistent=True
+  human : ['timing_inefficiency']
+
+[weather_vs_outdoor]
+  rules : ['weather_activity_mismatch']
+  llm r1: ['budget_exceeded', 'missing_flight_departure_info', 'outdoor_activity_weather_conflict', 'trip_end_date_undefined']
+  llm r2: ['budget_exceeded', 'outdoor_activity_weather_conflict']   consistent=False
+  human : ['weather_activity_mismatch']
+
+[arrival_after_desk_close]
+  rules : ['timing_inefficiency']
+  llm r1: ['budget_overrun', 'late_arrival_vs_hotel_checkin']
+  llm r2: ['budget_overrun', 'late_arrival_vs_hotel_checkin']   consistent=True
+  human : ['checkin_impossible']
+
+[component_sum_over_budget]
+  rules : —
+  llm r1: ['budget_exceeded']
+  llm r2: ['budget_exceeded']   consistent=True
+  human : ['budget_violation']
+
+[visa_lead_time_too_short]
+  rules : —
+  llm r1: ['budget_exceeded', 'missing_flight_departure_info', 'visa_processing_deadline_conflict']
+  llm r2: ['budget_exceeded', 'missing_flight_departure_info', 'visa_processing_deadline_conflict']   consistent=True
+  human : ['visa_timing']
+
+[preference_contradiction]
+  rules : —
+  llm r1: ['budget_overrun', 'interest_experience_mismatch']
+  llm r2: ['budget_overrun', 'interest_experience_mismatch']   consistent=True
+  human : ['preference_mismatch']
+
+==============================================================================
+SUMMARY
+  rule_conflicts:            4
+  llm_candidates:            12
+  exact_agreement:           0
+  missed_by_llm:             4
+  extra_llm_candidates:      12
+  validated_extra_conflicts: 0
+  unverified_extra_candidates: 12
+  precision:                 0.0
+  recall:                    0.0
+  false_positive_rate:       1.0
+  self_consistency:          0.875
+  (LLM agreement on rule-detected conflicts: 2/4)
+  (Rule-invisible conflicts caught by LLM: 3/3)
+  (Hallucinated conflicts on clean states: 0)
+
+Interpretation guide:
+  consistency < n      → LLM-only routing would be nondeterministic;
+                         rules must stay as the routing layer (hybrid).
+  recall gain > 0      → LLM adds real coverage → hybrid is justified
+                         as 'LLM proposes, rules/schema validate'.
+  validated_extra      → extras that earned routing authority via rules.
+  unverified_extra     → extras that must NOT route (false-positive risk).
+  hallucinations > 0   → unvalidated LLM detection would trigger
+                         unnecessary re-runs and inflate cost.
