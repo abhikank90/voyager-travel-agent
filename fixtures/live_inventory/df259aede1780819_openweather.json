@@ -1,6 +1,6 @@
 {
-  "avg_temp_c": 25.4,
-  "avg_temp_f": 77.7,
+  "avg_temp_c": 25.7,
+  "avg_temp_f": 78.3,
   "summary": "Expect a day of partly cloudy with rain",
   "source": "openweather_current_8day"
 }

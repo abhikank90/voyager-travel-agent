@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 485.0,
+      "airline": "Delta",
+      "departure": "2026-12-03 15:49",
+      "arrival": "2026-12-03 22:17",
+      "stops": 1,
+      "duration": 448,
+      "duration_minutes": 448
+    },
+    {
+      "price_usd": 492.0,
+      "airline": "Southwest",
+      "departure": "2026-12-03 06:50",
+      "arrival": "2026-12-03 13:15",
+      "stops": 1,
+      "duration": 445,
+      "duration_minutes": 445
+    },
+    {
+      "price_usd": 683.0,
+      "airline": "American",
+      "departure": "2026-12-03 18:50",
+      "arrival": "2026-12-03 20:50",
+      "stops": 0,
+      "duration": 180,
+      "duration_minutes": 180
+    }
+  ]
+}

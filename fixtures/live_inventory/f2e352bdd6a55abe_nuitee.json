@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp6559263d",
+      "name": "Citadines Harbour Front Yokohama",
+      "price_per_night_usd": 68.45,
+      "total_usd": 958.34,
+      "rating": 9.6,
+      "amenities": [],
+      "location": "5-2 Nihon Odori, Naka-ku, Yokohama, JP (35.4468,139.6426)",
+      "latitude": 35.446815,
+      "longitude": 139.642589
+    },
+    {
+      "hotel_id": "lp1a8dd9",
+      "name": "APA Hotel & Resort Yokohama Bay Tower",
+      "price_per_night_usd": 78.17,
+      "total_usd": 1094.33,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "Naka-ku Kaigandori 5-25-3, Yokohama, JP (35.4517,139.6386)",
+      "latitude": 35.451705,
+      "longitude": 139.638647
+    },
+    {
+      "hotel_id": "lp20eacf",
+      "name": "APA Hotel Yamanote Otsuka Ekimae Tower",
+      "price_per_night_usd": 86.35,
+      "total_usd": 1208.95,
+      "rating": 8.5,
+      "amenities": [],
+      "location": "Toshima-ku Minami Otsuka 3-31-10, Tokyo, JP (35.7315,139.7263)",
+      "latitude": 35.731481,
+      "longitude": 139.726325
+    },
+    {
+      "hotel_id": "lp7c668",
+      "name": "APA Hotel Asakusabashi Ekikita",
+      "price_per_night_usd": 90.17,
+      "total_usd": 1262.38,
+      "rating": 8.2,
+      "amenities": [],
+      "location": "Taito-ku Asakusabashi 3-1-10, Tokyo, JP (35.7001,139.7879)",
+      "latitude": 35.700083,
+      "longitude": 139.787866
+    },
+    {
+      "hotel_id": "lp6554b39c",
+      "name": "APA Hotel Nihombashi Bakuroyokoyama Ekimae",
+      "price_per_night_usd": 90.22,
+      "total_usd": 1263.06,
+      "rating": 8.4,
+      "amenities": [],
+      "location": "Chuo-ku Nihonbashiyokoyamacho 5-6, Tokyo, JP (35.6925,139.7832)",
+      "latitude": 35.692503,
+      "longitude": 139.783201
+    }
+  ]
+}

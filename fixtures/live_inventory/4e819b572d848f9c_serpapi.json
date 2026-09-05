@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 1209.0,
+      "airline": "Turkish Airlines",
+      "departure": "2026-12-03 00:20",
+      "arrival": "2026-12-04 07:25",
+      "stops": 1,
+      "duration": 1265,
+      "duration_minutes": 1265
+    },
+    {
+      "price_usd": 1462.0,
+      "airline": "Emirates",
+      "departure": "2026-12-03 10:40",
+      "arrival": "2026-12-04 14:55",
+      "stops": 1,
+      "duration": 1095,
+      "duration_minutes": 1095
+    },
+    {
+      "price_usd": 1541.0,
+      "airline": "Emirates",
+      "departure": "2026-12-03 10:40",
+      "arrival": "2026-12-04 15:25",
+      "stops": 1,
+      "duration": 1125,
+      "duration_minutes": 1125
+    }
+  ]
+}

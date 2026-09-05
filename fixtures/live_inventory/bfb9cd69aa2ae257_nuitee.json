@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp1f7021",
+      "name": "Quinta do Mar - Country & Sea Village",
+      "price_per_night_usd": 49.27,
+      "total_usd": 689.74,
+      "rating": 8.1,
+      "amenities": [],
+      "location": "Cama da Vaca, Lote 4, Quinta do Mar da Luz, Luz, PT (37.0765,-8.7567)",
+      "latitude": 37.076512,
+      "longitude": -8.756691
+    },
+    {
+      "hotel_id": "lp656ab926",
+      "name": "Cantinho da Av\u00f3",
+      "price_per_night_usd": 61.67,
+      "total_usd": 863.35,
+      "rating": 8.7,
+      "amenities": [],
+      "location": "Travessa dos Moinhos 8, Vila do Bispo, PT (37.0837,-8.9102)",
+      "latitude": 37.083727,
+      "longitude": -8.910161
+    },
+    {
+      "hotel_id": "lp655d83fd",
+      "name": "Salema Eco Camp - Sustainable Camping & Glamping",
+      "price_per_night_usd": 65.03,
+      "total_usd": 910.44,
+      "rating": 8.4,
+      "amenities": [],
+      "location": "Quinta dos Carri\u00e7os, Salema, Salema, PT (37.0750,-8.8311)",
+      "latitude": 37.075031,
+      "longitude": -8.831079
+    },
+    {
+      "hotel_id": "lp65594d82",
+      "name": "Apartamentos Os Descobrimentos",
+      "price_per_night_usd": 67.27,
+      "total_usd": 941.83,
+      "rating": 9.4,
+      "amenities": [],
+      "location": "42 Rua Da Forteleza, Burgau, Burgau, PT (37.0723,-8.7728)",
+      "latitude": 37.072289,
+      "longitude": -8.772781
+    },
+    {
+      "hotel_id": "lp3ff92",
+      "name": "Montinho De Ouro",
+      "price_per_night_usd": 69.72,
+      "total_usd": 976.08,
+      "rating": 8.3,
+      "amenities": [],
+      "location": "Montinhos Da Luz - Sitio Do Montinho De Ouro 2203B, Luz, PT (37.0954,-8.7466)",
+      "latitude": 37.09536,
+      "longitude": -8.746571
+    }
+  ]
+}

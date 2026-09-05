@@ -1,0 +1,21 @@
+{
+  "flights": [
+    {
+      "price_usd": 680,
+      "airline": "UA",
+      "departure": "2026-12-03T08:00:00",
+      "arrival": "2026-12-03T22:30:00",
+      "stops": 1,
+      "duration": "PT14H30M"
+    },
+    {
+      "price_usd": 750,
+      "airline": "DL",
+      "departure": "2026-12-03T10:30:00",
+      "arrival": "2026-12-03T23:45:00",
+      "stops": 1,
+      "duration": "PT13H15M"
+    }
+  ],
+  "mock": true
+}

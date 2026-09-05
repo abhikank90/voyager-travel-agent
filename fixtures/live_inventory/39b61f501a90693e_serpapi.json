@@ -1,0 +1,13 @@
+{
+  "flights": [
+    {
+      "price_usd": 784.0,
+      "airline": "LEVEL",
+      "departure": "2026-12-03 23:45",
+      "arrival": "2026-12-04 22:40",
+      "stops": 1,
+      "duration": 895,
+      "duration_minutes": 895
+    }
+  ]
+}

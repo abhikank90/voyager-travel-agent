@@ -1,0 +1,35 @@
+{
+  "results_schema_version": "2",
+  "inventory_mode": "capture",
+  "query_count": 22,
+  "mode": "compare",
+  "mean_final_conflicts": 1.0,
+  "resolution_rate_pct": 11.1,
+  "post_refinement_introduction_rate_pct": 36,
+  "reopened_conflict_rate_pct": 0,
+  "mean_reexecuted_agents": 2.73,
+  "agent_call_savings_vs_full_rerun_pct": 42.2,
+  "converged_after_round_1_pct": 18,
+  "converged_after_round_2_pct": 9,
+  "converged_after_round_3_pct": 36,
+  "final_unresolved_conflict_rate_pct": 36,
+  "unsatisfiable_constraint_rate_pct": 64,
+  "full": {
+    "query_count": 11,
+    "mean_round_1_conflicts": 1.09,
+    "mean_round_2_conflicts_remaining": 1.0,
+    "mean_round_3_conflicts_remaining": 0.64,
+    "mean_introduced": 0.36,
+    "mean_reopened": 0.0,
+    "mean_persistence": 1.12
+  },
+  "baseline": {
+    "query_count": 11,
+    "mean_round_1_conflicts": 1.27,
+    "mean_round_2_conflicts_remaining": 1.27,
+    "mean_round_3_conflicts_remaining": 1.27,
+    "mean_introduced": 0.0,
+    "mean_reopened": 0.0,
+    "mean_persistence": 1.0
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "hotels": [
+    {
+      "hotel_id": "lp4dcef",
+      "name": "Aparthotel Colombo Roma",
+      "price_per_night_usd": 24.91,
+      "total_usd": 174.4,
+      "rating": 8.9,
+      "amenities": [],
+      "location": "Via Cristoforo Colombo 112, Rome, IT (41.8658,12.4962)",
+      "latitude": 41.865807,
+      "longitude": 12.496205
+    },
+    {
+      "hotel_id": "lp5a4fa",
+      "name": "hu Roma Camping In Town",
+      "price_per_night_usd": 46.55,
+      "total_usd": 325.83,
+      "rating": 8.5,
+      "amenities": [],
+      "location": "Via Aurelia 831, Rome, IT (41.8869,12.4045)",
+      "latitude": 41.88693,
+      "longitude": 12.404519
+    },
+    {
+      "hotel_id": "lp2f41b",
+      "name": "Hotel Isola Sacra Rome Airport",
+      "price_per_night_usd": 56.84,
+      "total_usd": 397.86,
+      "rating": 8.8,
+      "amenities": [],
+      "location": "Via della Scafa 416, Fiumicino, IT (41.7568,12.2730)",
+      "latitude": 41.756767,
+      "longitude": 12.273001
+    },
+    {
+      "hotel_id": "lp76497",
+      "name": "Hotel Stromboli",
+      "price_per_night_usd": 60.67,
+      "total_usd": 424.68,
+      "rating": 7.2,
+      "amenities": [],
+      "location": "Via Marsala 34, Rome, IT (41.9028,12.5019)",
+      "latitude": 41.902779,
+      "longitude": 12.501938
+    },
+    {
+      "hotel_id": "lp3a642",
+      "name": "LH Hotel Excel Roma Montemario",
+      "price_per_night_usd": 65.93,
+      "total_usd": 461.54,
+      "rating": 7.8,
+      "amenities": [],
+      "location": "Via Degli Scolopi 31, Rome, IT (41.9324,12.4337)",
+      "latitude": 41.932395,
+      "longitude": 12.433698
+    }
+  ]
+}

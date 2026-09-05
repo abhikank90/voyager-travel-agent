@@ -1,0 +1,31 @@
+{
+  "flights": [
+    {
+      "price_usd": 539.0,
+      "airline": "Tap Air Portugal",
+      "departure": "2026-12-03 22:00",
+      "arrival": "2026-12-04 17:15",
+      "stops": 1,
+      "duration": 795,
+      "duration_minutes": 795
+    },
+    {
+      "price_usd": 682.0,
+      "airline": "Delta",
+      "departure": "2026-12-03 18:55",
+      "arrival": "2026-12-04 08:35",
+      "stops": 0,
+      "duration": 460,
+      "duration_minutes": 460
+    },
+    {
+      "price_usd": 682.0,
+      "airline": "American",
+      "departure": "2026-12-03 20:00",
+      "arrival": "2026-12-04 09:55",
+      "stops": 0,
+      "duration": 475,
+      "duration_minutes": 475
+    }
+  ]
+}
