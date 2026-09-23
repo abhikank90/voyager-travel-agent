@@ -236,6 +236,9 @@ class FlightAgent(BaseAgent):
         api_key = os.getenv("SERPAPI_API_KEY")
 
         mode = self._inventory_mode()
+        # Dates are derived per-mode: capture uses today+90, replay derives from
+        # the fixtures' capture date so the query id (and thus the fixture found)
+        # is identical no matter when the replay is run.
         query_id = inventory.inventory_query_id(
             "serpapi", origin=origin, destination=destination,
             departure_date=departure_date, return_date=return_date, adults=group_size,

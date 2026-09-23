@@ -68,10 +68,45 @@ class BaseAgent(ABC):
         return {"errors": {self.name: message}}
 
     def _effective_dates(self, travel_year: int, duration_days: int = 13) -> tuple[str, str]:
-        """Capture/live modes need future-dated inventory queries; mock keeps the
-        intent-derived dates so the synthetic benchmark stays comparable."""
+        """Date window used for inventory queries, per inventory mode.
+
+        - capture: today + 90d / +duration_days (the API is consulted ~3 months out).
+        - replay:  derived from the fixtures' capture date (manifest.json), NOT the
+                   calendar — so replaying today, next week, or next month recomputes
+                   the SAME query ids and finds the SAME fixtures, reproducing the
+                   live dataset exactly.
+        - mock:    static intent-derived dates for benchmark comparability.
+        """
         from datetime import timedelta
-        if self._inventory_mode() in ("capture", "replay"):
+        mode = self._inventory_mode()
+        if mode == "capture":
             start = date.today() + timedelta(days=90)
-            return start.isoformat(), (start + timedelta(days=duration_days)).isoformat()
-        return f"{travel_year}-07-01", f"{travel_year}-07-14"
+        elif mode == "replay":
+            start = self._get_fixture_capture_date() + timedelta(days=90)
+        else:
+            return f"{travel_year}-07-01", f"{travel_year}-07-14"
+        return start.isoformat(), (start + timedelta(days=duration_days)).isoformat()
+
+    def _get_fixture_capture_date(self) -> date:
+        """Capture date (local) anchored on the replay manifest's first fixture.
+
+        Replay anchors its query window to when the fixtures were captured rather
+        than to `today`, so reruns across days stay identical (date-stable replay).
+        The manifest is keyed in insertion order, so its first entry is the
+        reference capture run; we take that fixture's local capture date so the
+        derived +90d window reproduces the exact query ids used at capture time.
+        Falls back to today if the manifest is empty.
+        """
+        from datetime import datetime
+
+        from agents.inventory import load_manifest
+        manifest = load_manifest()
+        fixtures = manifest.get("fixtures") or {}
+        for meta in fixtures.values():
+            ts = meta.get("captured_at")
+            if ts:
+                try:
+                    return datetime.fromisoformat(ts).astimezone().date()
+                except (TypeError, ValueError):
+                    continue
+        return date.today()

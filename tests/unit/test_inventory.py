@@ -74,9 +74,9 @@ def test_capture_and_replay_produce_identical_selections(tmp_inventory_dir):
 
     from agents.flight_agent import FlightAgent, _arrival_hour
 
-    # Capture and replay both derive future-dated queries via _effective_dates;
-    # the fixture must be stored under the exact query_id the agent computes
-    # at run time, otherwise replay can't find it.
+    # Capture and replay share the same query-id construction: dates are
+    # derived per-mode (capture/replay both anchor on the same date source), so
+    # the fixture is found across days. Capture under the id replay computes.
     probe = FlightAgent()
     with patch.object(probe, "_inventory_mode", return_value="replay"):
         dep, ret = probe._effective_dates(2026)
@@ -99,7 +99,6 @@ def test_capture_and_replay_produce_identical_selections(tmp_inventory_dir):
     }
 
     import asyncio
-    from unittest.mock import patch
 
     async def run():
         agent = FlightAgent()

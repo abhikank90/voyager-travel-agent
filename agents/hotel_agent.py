@@ -139,6 +139,8 @@ class HotelAgent(BaseAgent):
 
         api_key = os.getenv("NUITEE_API_KEY", "")
         mode = self._inventory_mode()
+        # Dates derived per-mode (see flight_agent): replay anchors on the
+        # fixtures' capture date so the query id reproduced matches capture.
         query_id = inventory.inventory_query_id(
             "nuitee", destination=destination, check_in=check_in,
             check_out=check_out, guests=group_size,
