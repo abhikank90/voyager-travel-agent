@@ -1,0 +1,24 @@
+{
+  "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+  "@type": "SoftwareSourceCode",
+  "name": "Voyager",
+  "description": "A coordination pattern for multi-agent LLM systems: typed conflict detection, targeted peer feedback, and selective re-execution.",
+  "author": [
+    {
+      "@type": "Person",
+      "givenName": "Abhishek Reddy",
+      "familyName": "Kankanala"
+    }
+  ],
+  "license": "https://spdx.org/licenses/MIT",
+  "codeRepository": "https://github.com/abhikank90/voyager-travel-agent",
+  "programmingLanguage": ["Python"],
+  "identifier": "https://doi.org/10.5281/zenodo.21269752",
+  "keywords": [
+    "multi-agent systems",
+    "large language models",
+    "conflict resolution",
+    "travel planning",
+    "reproducibility"
+  ]
+}
