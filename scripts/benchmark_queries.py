@@ -162,10 +162,12 @@ def main() -> None:
         return
 
     limit = args.query_count or args.limit
-    queries = QUERIES[:limit] if limit else QUERIES
+    queries = list(QUERIES)
     offset = int(os.environ.get("VOYAGER_QUERY_OFFSET", "0"))
     if offset:
         queries = queries[offset:]
+    if limit:
+        queries = queries[:limit]
 
     if args.dry_run:
         print(f"\n{len(queries)} queries (mode={args.mode}, inventory={inventory_mode}):\n")
