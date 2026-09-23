@@ -1,6 +1,6 @@
 # Voyager: Targeted Peer Feedback for Multi-Agent Conflict Resolution
 
-[![DOI](https://zenodo.org/badge/1240210492.svg)](https://doi.org/10.5281/zenodo.21269753)
+[![DOI](https://zenodo.org/badge/1240210492.svg)](https://doi.org/10.5281/zenodo.21269752)
 
 [![CI](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/abhikank90/voyager-travel-agent/actions/workflows/ci.yml)
 
@@ -269,6 +269,15 @@ Roadmap:
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed component reference: all agents, state schema, API endpoints, frontend, benchmark methodology
 - **[API_REQUIREMENTS.md](API_REQUIREMENTS.md)** - External API requirements, keys, and mock fallbacks
 - **[TESTING.md](TESTING.md)** - Comprehensive testing guide with coverage targets
+
+## Support & Governance
+
+Voyager is an open-source research project maintained by a single developer.
+
+- **Questions and bug reports:** open a GitHub issue. Expect a response within about a week.
+- **Security issues:** please open an issue marked [SECURITY] with minimal detail, and maintainer contact will follow privately.
+- **Roadmap:** planned work is tracked as GitHub issues; see issues labeled `v1.2` for the current milestone.
+- **Maintenance status:** actively maintained as of 2026. Long-term support is best-effort; the mock mode and captured fixtures ensure the published results remain reproducible regardless of external API changes.
 
 ## License
 
