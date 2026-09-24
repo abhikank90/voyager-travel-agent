@@ -539,6 +539,48 @@ describe('NewComponent', () => {
 
 ---
 
+## **Replay determinism and cross-day verification**
+
+Replay mode is designed for reproducibility:
+
+- **Date-stable fixtures.** Replay anchors its inventory query window to the
+  fixtures' capture date recorded in the replay manifest, not the calendar.
+  Replaying on any later day recomputes the same query ids and finds the same
+  fixtures. (Previously, capture and replay had to run the same day.)
+- **Pinned decoding.** All agents run at temperature 0 in replay mode via the
+  central `effective_temperature()` resolver (config/settings.py); override
+  with `VOYAGER_TEMPERATURE_OVERRIDE`. Mock/capture/app keep tuned defaults.
+- **Live LLM, offline inventory.** Inventory APIs are served from fixtures,
+  but Anthropic calls are live — a valid `ANTHROPIC_API_KEY` is required.
+  For fully offline output, disable tracing:
+  `LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false`.
+- **Residual variance.** Claude at temperature 0 is not contractually
+  bit-deterministic across API calls, so a small number of queries may still
+  vary between runs. Temperature pinning raised exact-match runs from 17/20
+  (default temps) to 21/24 (pinned), with smaller swings in the remaining
+  diffs. Fully byte-identical replay would require recording/replaying LLM
+  responses.
+
+### Verification evidence (results/v1.2/)
+
+- `*_unpinned_day1/day2` — two full replay runs on different days at default
+  app temperatures: 17/20 paired runs bit-identical; Greece (baseline),
+  Portugal Algarve (full), Tokyo (full) differed in Round-1 conflict counts.
+- `*_pinned_run1/run2` — two full replay runs with decoding pinned to
+  temperature 0: 21/24 paired runs identical; the 3 remaining diffs (Portugal
+  baseline/full, Thailand full) are residual API-level LLM variance.
+  Raw CSVs also differ by random per-run session UUIDs — compare normalized
+  per query.
+
+### Reproducing the verification
+
+1. `LANGCHAIN_TRACING_V2=false LANGSMITH_TRACING=false python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12`
+2. Copy `results/` outputs aside (each run overwrites them).
+3. Re-run and compare per query — rule-level metrics should match for the
+   large majority of runs.
+
+---
+
 ## **Resources**
 
 - **Pytest docs**: https://docs.pytest.org/

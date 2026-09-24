@@ -94,9 +94,11 @@ The benchmark runs queries through the full graph in two modes — *full* (hub r
 |---|---|---|---|
 | `mock` | Deterministic fixtures, fully offline | None | CI, unit tests, reproducible benchmarks |
 | `capture` | Hits real APIs (SerpApi, Nuitee, OpenWeather), saves hash-verified fixtures | Live | Measuring real-world behavior |
-| `replay` | Re-runs against captured fixtures, zero network | None | Deterministic replay of real data |
+| `replay` | Re-runs against captured fixtures, inventory offline | LLM only | Deterministic replay of real data |
 
-Capture and replay must run the same day — effective trip dates are date-keyed to the capture date.
+Note: in all modes the LLM (Claude) is a live API call — only the *inventory* providers (flights, hotels, weather, experiences) are mocked or replayed.
+
+Replay is date-stable and near-deterministic: query dates anchor to the fixtures' capture date recorded in the replay manifest (replay works on any later day), and decoding is pinned to temperature 0 in replay mode. In verification, 21 of 24 paired runs produced identical rule-level metrics; the residual variance is inherent to live LLM APIs at temperature 0 (see results/v1.2/).
 
 ### Synthetic Inventory (25 queries × 2 modes = 50 sessions)
 
@@ -149,7 +151,7 @@ python scripts/benchmark_queries.py --mode compare --inventory mock
 # Capture — live APIs (~45 min, ~$3 in tokens + sandbox calls)
 python scripts/benchmark_queries.py --mode compare --inventory capture --query-count 12
 
-# Replay — same day as capture, zero network (~40 min)
+# Replay — date-stable, any day after capture; inventory offline, LLM pinned to temp 0 (~40 min)
 python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12
 
 # Summary
