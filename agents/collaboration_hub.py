@@ -15,7 +15,7 @@ from agents.hybrid_conflict_detector import (
     HybridConflictDetector,
     parse_llm_candidates,
 )
-from config import get_api_config, get_settings
+from config import effective_temperature, get_api_config, get_settings
 from graph.state import CollaborationMessage, TravelState
 from metrics.token_tracker import track_usage
 
@@ -51,7 +51,7 @@ class CollaborationHubAgent(BaseAgent):
         response = self.client.messages.create(
             model=self.model,
             max_tokens=2000,
-            temperature=0.3,
+            temperature=effective_temperature(0.3),
             messages=[{
                 "role": "user",
                 "content": analysis_prompt
@@ -152,7 +152,7 @@ class CollaborationHubAgent(BaseAgent):
                 response = self.client.messages.create(
                     model=self.model,
                     max_tokens=1000,
-                    temperature=settings.llm_detector_temperature,
+                    temperature=effective_temperature(settings.llm_detector_temperature),
                     messages=[{"role": "user", "content": prompt}],
                 )
                 track_usage(

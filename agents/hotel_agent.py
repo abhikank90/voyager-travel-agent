@@ -97,11 +97,11 @@ class HotelAgent(BaseAgent):
 
     def _setup(self):
         try:
-            from config import get_api_config
+            from config import effective_temperature, get_api_config
             model = get_api_config().llm.hotel_agent_model
         except Exception:
             model = "claude-haiku-4-5-20251001"
-        self.llm = ChatAnthropic(model=model, temperature=0, callbacks=[TokenTrackingCallback(model=model)])
+        self.llm = ChatAnthropic(model=model, temperature=effective_temperature(0), callbacks=[TokenTrackingCallback(model=model)])
 
     async def _execute(self, state: dict) -> dict:
         intent = state.get("intent", {})

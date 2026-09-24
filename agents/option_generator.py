@@ -10,7 +10,7 @@ import json
 from anthropic import Anthropic
 
 from agents.base_agent import BaseAgent
-from config import get_api_config
+from config import effective_temperature, get_api_config
 from graph.state import TravelState, TripOption
 from metrics.token_tracker import track_usage
 
@@ -298,7 +298,7 @@ Return ONLY a JSON array of day objects with this structure:
         response = self.client.messages.create(
             model=self.model,
             max_tokens=3000,
-            temperature=0.7,
+            temperature=effective_temperature(0.7),
             messages=[{"role": "user", "content": prompt}]
         )
         track_usage(response.usage.input_tokens, response.usage.output_tokens, model=self.model)
