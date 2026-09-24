@@ -42,13 +42,13 @@ class ItineraryBuilderAgent(BaseAgent):
 
     def _setup(self):
         try:
-            from config import get_api_config
+            from config import effective_temperature, get_api_config
             model = get_api_config().llm.itinerary_builder_model
         except Exception:
             model = "claude-sonnet-4-6"
         self.llm = ChatAnthropic(
             model=model,
-            temperature=0.4,
+            temperature=effective_temperature(0.4),
             max_tokens=4096,
             callbacks=[TokenTrackingCallback(model=model)],
         )

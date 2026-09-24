@@ -31,6 +31,12 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="VOYAGER_", extra="ignore")
 
+    # ── Decoding (sampling) ────────────────────────────────────────────────
+    # When set, this overrides every agent's LLM temperature regardless of
+    # mode (VOYAGER_TEMPERATURE_OVERRIDE). Recommended value for deterministic
+    # runs is 0.0.
+    temperature_override: float | None = None
+
     # ── Hybrid LLM conflict detector ───────────────────────────────────────
     enable_llm_conflict_candidates: bool = False
     llm_detector_repetitions: int = 3
@@ -39,6 +45,24 @@ class Settings(BaseSettings):
     # ── Live inventory capture/replay ─────────────────────────────────────
     inventory_mode: Literal["mock", "capture", "replay"] = "mock"
     inventory_dir: str = "fixtures/live_inventory"
+
+
+def effective_temperature(default_temperature: float) -> float:
+    """Resolve the decoding temperature an agent should use for an LLM call.
+
+    Priority:
+      1. ``VOYAGER_TEMPERATURE_OVERRIDE`` if set — forces every agent to that
+         value (use 0.0 for deterministic decoding).
+      2. 0.0 when ``inventory_mode == "replay"`` — replay must reproduce the
+         captured run exactly, so sampling temperature is pinned to zero.
+      3. The agent's documented default (capture/mock/live-app behaviour).
+    """
+    settings = get_settings()
+    if settings.temperature_override is not None:
+        return settings.temperature_override
+    if settings.inventory_mode == "replay":
+        return 0.0
+    return default_temperature
 
 
 _settings: Settings | None = None
