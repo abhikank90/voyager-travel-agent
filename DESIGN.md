@@ -58,7 +58,9 @@ single agent best positioned to resolve it; only that agent re-runs.
 
 **Decision.** Each conflict type names a single responsible agent (e.g., for
 `location_mismatch`, the hotel moves toward the activities — the activities do
-not move toward the hotel).
+not move toward the hotel). That mapping lives in one place
+(`CONFLICT_RESOLVER` in `agents/conflicts.py`): the hub routes each type's
+feedback message to it, and Round 3 re-runs exactly that same resolver.
 
 **Why.** Bidirectional messages ("hotel, move near the activities" +
 "experiences, find some near the hotel") cause oscillation: both agents adjust
@@ -87,11 +89,15 @@ agents involved, and normalized evidence data — never from prose.
 
 **Why.** This makes the introduced/resolved/reopened lifecycle classification
 honest: the tracker can distinguish "same conflict persisting" from "new
-conflict introduced" across rounds. Without it, churn is invisible — the
-0.42/query introduction rate on live inventory (the experience agent generating
-a genuinely different activity set in Round 3, producing different constraints)
-would have been masked by constant fingerprints, and prose fingerprints would be
-unstable under LLM paraphrase.
+conflict introduced" across rounds. The 0.42/query introduction rate on live
+inventory came from Round 3 re-running every participant in each surviving
+conflict — including the experience agent, which was never messaged for a
+location conflict — so its LLM re-execution produced a genuinely different
+activity set and, with it, different location constraints. Content-addressed
+fingerprints make that churn visible rather than masked, and prose
+fingerprints would be unstable under LLM paraphrase; the fix here (§3) re-runs
+only the designated resolver per conflict type, so the experience agent is no
+longer re-executed for conflicts it does not resolve.
 
 ## 6. Constraints filter selection; sources only need to contain a qualifying option
 
