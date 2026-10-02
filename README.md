@@ -6,6 +6,11 @@
 
 **A coordination pattern for multi-agent LLM systems: typed conflict detection, targeted peer feedback, and selective re-execution.** Voyager demonstrates the pattern on a real problem — multi-agent travel planning — where parallel specialist agents produce locally optimal but globally incoherent results. On synthetic inventory the pattern resolves 100% of conflicts; on real API inventory it honestly surfaces the ones reality can't satisfy.
 
+> Voyager is a **research testbed** for studying conflict resolution in
+> multi-agent LLM systems, with travel planning as the reference domain. The
+> travel app is fully working — but the artifact is the coordination layer,
+> its lifecycle metrics, and its reproducibility machinery.
+
 | Metric | Synthetic inventory (25 queries × 2 modes) | Real API inventory (12 queries × 2 modes) |
 |---|---|---|
 | Round-1 conflicts / query | 2.0 | 1.2 |
@@ -26,6 +31,29 @@
 *Watch Voyager generate personalized trip options in real-time as agents collaborate to find flights, hotels, and experiences.*
 
 ---
+
+## Statement of need
+
+**The gap.** Multi-agent frameworks provide orchestration and messaging, not
+conflict resolution as a measurable system property. LangGraph supplies graph
+primitives; agent protocols supply interop; debate and generator-critic loops
+broadcast natural-language critique with no structural guarantee that the
+right agent receives the right constraint, at unbounded cost. None offer
+deterministic detection with verifiable evidence, routing to a single
+responsible agent, lifecycle metrics (resolution rate, introductions,
+convergence round), or reproducible benchmarking of any of it against real
+API nondeterminism.
+
+**Who it's for.** Researchers studying multi-agent coordination, LLM-system
+evaluation, and agent reliability — and practitioners building agent pipelines
+who need measurable conflict handling rather than hopeful prompting.
+
+**What Voyager provides.** Typed conflict detection with content-addressed
+evidence; targeted single-agent routing with one resolution direction per
+conflict type; a hard round bound via graph topology; per-query, per-round
+lifecycle metrics; and a three-mode (mock/capture/replay) reproducibility
+architecture whose published benchmarks anyone can rerun. Trade-offs and
+rejected alternatives: DESIGN.md.
 
 ## The Problem
 
