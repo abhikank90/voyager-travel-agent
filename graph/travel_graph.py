@@ -39,7 +39,7 @@ from agents import (
     VisaSafetyAgent,
     WeatherAgent,
 )
-from agents.conflicts import ConflictLifecycleTracker
+from agents.conflicts import CONFLICT_RESOLVER, ConflictLifecycleTracker
 from graph.state import TravelState
 
 _AGENTS_ALL = {"flight", "hotel", "experience", "weather", "visa_safety"}
@@ -187,15 +187,20 @@ async def research_round_3(state: TravelState) -> TravelState:
     t0 = time.perf_counter()
 
     conflicts = state.get("conflicts", [])
-    agents_in_conflict: set[str] = set()
-    for conflict in conflicts:
-        agents_in_conflict.update(conflict.get("agents", []))
+    # Each conflict type names a single responsible agent (DESIGN.md §3) — the
+    # same map the hub routes messages through — so Round 3 re-runs exactly that
+    # resolver per surviving conflict, not every participant in the conflict.
+    resolvers = {
+        CONFLICT_RESOLVER[conflict["type"]]
+        for conflict in conflicts
+        if conflict.get("type") in CONFLICT_RESOLVER
+    }
 
     # Only flight/hotel/experience can be re-run; weather and visa_safety are
     # read-only data sources that don't benefit from a second pass here.
-    # Counting agents_in_conflict directly (which can include "weather") would
-    # inflate the rerun metric and corrupt the savings calculation.
-    rerunnable = agents_in_conflict & {"flight", "hotel", "experience"}
+    # Intersecting the resolver set (which never contains weather/visa_safety)
+    # keeps the rerun metric and the savings calculation honest.
+    rerunnable = resolvers & {"flight", "hotel", "experience"}
 
     tasks = []
     if "flight" in rerunnable:
