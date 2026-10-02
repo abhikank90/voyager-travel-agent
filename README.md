@@ -172,6 +172,30 @@ Full mode is *cheaper and faster* than baseline on real inventory ($0.1165 vs $0
 
 ### Reproduce
 
+One command reruns the published replay benchmark and checks the outputs
+against the committed expected values:
+
+```bash
+./scripts/reproduce.sh
+```
+
+- **What it does:** runs the full replay benchmark (12 queries × 2 modes;
+  inventory served from committed fixtures, decoding pinned to temperature 0,
+  tracing disabled), copies the results aside, restores the locked `results/`
+  and `fixtures/` artifacts, and compares every metric against
+  `benchmarks/expected_replay.json` — printing a per-metric PASS/FAIL table.
+- **Runtime:** ~40 minutes at ~$3 in tokens. `./scripts/reproduce.sh --quick`
+  runs the first 3 queries as a ~5-minute smoke check (~$0.50).
+- **Requirements:** `ANTHROPIC_API_KEY` (replay serves inventory from fixtures,
+  but LLM calls are live).
+- **PASS means:** all aggregate rule-level metrics are within their documented
+  bands and the fixture-resolution and detection-count invariants match exactly;
+  tolerances exist because ~3/24 paired runs still differ at temperature 0 —
+  residual LLM API variance, not a regression (see TESTING.md, "Residual
+  variance").
+
+For manual benchmark runs without the comparison step:
+
 ```bash
 # Mock — deterministic, offline (~3h, ~$9 in tokens)
 python scripts/benchmark_queries.py --mode compare --inventory mock
@@ -189,7 +213,7 @@ python scripts/benchmark_queries.py --summary
 python scripts/eval_hybrid_detection.py
 ```
 
-Reproduce against tag `v1.1-infoq`.
+The published numbers reproduce against tag `v1.1-infoq`.
 
 ### Three caveats
 
