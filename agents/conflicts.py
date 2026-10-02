@@ -38,6 +38,17 @@ from typing import Any
 # same duration expressed with different formatting keeps one identity.
 _ISO_DURATION = re.compile(r"^PT(?:(\d+)H)?(?:(\d+)M)?$")
 
+# Single source of truth for resolver targeting: each conflict type names the
+# one agent responsible for resolving it (DESIGN.md §3 — one resolution
+# direction per conflict type). The hub routes its feedback message to this
+# agent, and `research_round_3` re-runs exactly this agent; deriving both from
+# this map keeps message routing and Round-3 targeting from drifting apart.
+CONFLICT_RESOLVER: dict[str, str] = {
+    "location_mismatch": "hotel",
+    "timing_inefficiency": "flight",
+    "weather_activity_mismatch": "experience",
+}
+
 
 def _canonical_scalar(value: Any) -> Any:
     """Return a round-independent, unit-canonical rendering of a scalar."""
