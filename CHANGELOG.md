@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-02
+
+### Added
+
+- One-command benchmark reproduction: scripts/reproduce.sh with
+  tolerance-aware expected-value checks (compare_results.py,
+  benchmarks/expected_replay.json)
+- DESIGN.md — design rationale, trade-offs, and rejected alternatives
+- CONTRIBUTING.md, CHANGELOG.md, Support & Governance section, codemeta.json
+- Replay verification artifacts (results/v1.2/)
+
+### Changed
+
+- Replay is date-stable: query dates anchor to the fixture manifest's
+  capture date, so replay works on any day after capture
+- Replay decoding pinned to temperature 0 via the central
+  effective_temperature() resolver (override: VOYAGER_TEMPERATURE_OVERRIDE)
+- README: research-testbed positioning, statement of need, reproduce docs
+- Canonical Zenodo concept DOI across README and CITATION.cff
+
+### Fixed
+
+- Replay fixtures unfindable across calendar days (query dates were derived
+  from the wall clock)
+- Benchmark runner applies query offset before limit
+- Ruff E501 regressions from the temperature-routing change
+
 ## [1.1.0] - 2026-09-05
 
 Tag: `v1.1-infoq`. Live capture/replay benchmark work (real API inventory,

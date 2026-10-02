@@ -7,7 +7,7 @@ packages = ["agents", "api", "config", "graph", "metrics", "langsmith_custom"]
 
 [project]
 name = "voyager-travel-agent"
-version = "1.0.0"
+version = "1.2.0"
 description = "Multi-agent AI travel planner powered by LangGraph and LangSmith"
 readme = "README.md"
 requires-python = ">=3.11"
