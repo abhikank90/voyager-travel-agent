@@ -47,6 +47,7 @@ MANIFEST
 .pytest_cache/
 .coverage
 .coverage.*
+.coverage*
 coverage_report/
 htmlcov/
 .tox/
@@ -143,3 +144,8 @@ credentials
 # ────────────────────────────────────────────
 .langchain/
 langsmith_cache/
+
+# Local agent tooling (not for the public repo)
+.claude/
+AGENTS.md
+STATE.md

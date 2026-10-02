@@ -269,6 +269,7 @@ Roadmap:
 
 - **[GETTING_STARTED.md](GETTING_STARTED.md)** - Installation, setup, and quick start guide
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed component reference: all agents, state schema, API endpoints, frontend, benchmark methodology
+- **[DESIGN.md](DESIGN.md)** - Design decisions, trade-offs, and rejected alternatives
 - **[API_REQUIREMENTS.md](API_REQUIREMENTS.md)** - External API requirements, keys, and mock fallbacks
 - **[TESTING.md](TESTING.md)** - Comprehensive testing guide with coverage targets
 
