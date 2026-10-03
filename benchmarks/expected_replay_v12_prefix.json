@@ -13,6 +13,8 @@
     ],
     "derived_on": "2026-10-02",
     "derivation": "Expected = midpoint of the two pinned-run observations; tolerance = observed spread between the runs, rounded up so both pinned runs pass. Metrics with tolerance 0 are exact invariants: fixture-resolution counts and per-rule detection counts for the two stable rules.",
+    "superseded": true,
+    "superseded_note": "Pre-fix reference retained for v1.2 reproducibility (Round 3 re-ran all conflict participants). Post-fix v1.3 reference lives in benchmarks/expected_replay.json.",
     "tolerance_rationale": "Replay decoding is pinned to temperature 0, but ~3/24 paired runs still differ on rule-level metrics because Claude at temperature 0 is not bit-deterministic across API calls (residual LLM API variance; see TESTING.md, 'Residual variance').",
     "query_count": 24,
     "queries": 12
