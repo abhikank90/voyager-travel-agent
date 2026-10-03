@@ -5,13 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.3.0] - 2026-10-03
 
 ### Fixed
 
 - Round 3 now re-runs only the designated resolver for each surviving
   conflict type, matching the documented one-direction rule; it previously
-  re-ran all conflict participants (#11).
+  re-ran all conflict participants (#11). Measured post-fix (three replay
+  runs, results/v1.3/): post-refinement introductions 0.25–0.42 → 0.0/query,
+  agent-call savings 36.9% → 45.2%, mean re-executed agents 3.46 → 2.42;
+  resolution rate unchanged at 10%, reopened conflicts 0.
 
 ## [1.2.0] - 2026-10-02
 
