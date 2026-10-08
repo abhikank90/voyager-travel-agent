@@ -2,7 +2,7 @@ import json
 import os
 
 import boto3
-from botocore.exceptions import ClientError
+from botocore.exceptions import BotoCoreError, ClientError
 
 from .base_agent import BaseAgent
 
@@ -43,8 +43,11 @@ class PersonalisationAgent(BaseAgent):
             try:
                 resp = self._table.get_item(Key={"user_id": user_id})
                 return resp.get("Item", {})
-            except ClientError:
-                return {}
+            except (ClientError, BotoCoreError):
+                # Unreachable or misconfigured DynamoDB (e.g. a LocalStack
+                # endpoint that isn't running) must not crash a run; fall back
+                # to the local profile store, as the class docstring promises.
+                return self._load_local(user_id)
         return self._load_local(user_id)
 
     def _load_local(self, user_id: str) -> dict:
