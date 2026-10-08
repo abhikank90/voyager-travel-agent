@@ -182,24 +182,40 @@ def compare_quick(expected: dict[str, Any], results_dir: Path) -> int:
 
     _print_header(expected, results_dir)
     print(f"Quick smoke check — first {n} query(ies), round-1 and final conflict counts\n")
-    print(f"{'session':<28} {'expected':>8} {'actual':>6}  result")
+    print(f"{'session':<28} {'expected':>8} {'actual':>6} {'tol':>4}  result")
     failures = 0
     total = 0
+    known_variance = 0
     for i in range(n):
         mode_rows = (("full", full_rows, per_query["full"]), ("baseline", base_rows, per_query["baseline"]))
         for mode, rows, exp_rows in mode_rows:
+            # Optional per-query "tolerance" marks sessions with documented
+            # residual variance at temperature 0 (see provenance notes in
+            # expected_replay.json). Default 0 keeps every other check exact.
+            tolerance = int(exp_rows[i].get("tolerance", 0))
             for field, exp_field in (("round_1", "round_1"), ("final", "final")):
                 expected_value = exp_rows[i][exp_field]
                 actual = int(rows[i][f"{field}_conflicts"]) if field == "round_1" else int(rows[i]["final_conflicts"])
-                ok = actual == expected_value
+                diff = abs(actual - expected_value)
+                ok = diff <= tolerance
+                if not ok:
+                    status = "FAIL"
+                elif diff:
+                    status = "PASS (known variance)"
+                    known_variance += 1
+                else:
+                    status = "PASS"
                 failures += 0 if ok else 1
                 total += 1
                 label = f"q{i}.{mode}.{field}"
-                print(f"{label:<28} {expected_value:>8} {actual:>6}  {'PASS' if ok else 'FAIL'}")
+                print(f"{label:<28} {expected_value:>8} {actual:>6} {tolerance:>4}  {status}")
 
     print()
     passed = total - failures
-    print(f"{passed}/{total} checks passed")
+    summary = f"{passed}/{total} checks passed"
+    if known_variance:
+        summary += f" ({known_variance} within documented tolerance)"
+    print(summary)
     return 1 if failures else 0
 
 

@@ -144,3 +144,36 @@ def test_lifecycle_metrics():
     assert m["lifecycle_total"]["location_mismatch"] == 1
     assert m["status_full"]["persisting"] == 1
     assert m["status_baseline"]["persisting"] == 1
+
+def test_compare_quick_tolerance_marks_known_variance(tmp_path, capsys):
+    d = _artifacts(tmp_path)
+    expected = _expected()
+    expected["per_query"]["baseline"][0]["tolerance"] = 1
+    (d / "conflicts_by_round.csv").write_text(
+        "session_id,mode,round_1_conflicts,round_2_conflicts_remaining,"
+        "round_3_conflicts_remaining,final_conflicts,converged_round\n"
+        "a,full,2,1,1,1,\n"
+        "b,baseline,1,1,1,1,\n"
+        "c,full,1,1,1,0,2\n"
+        "d,baseline,1,1,1,1,\n"
+    )
+    rc = compare_quick(expected, d)
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "PASS (known variance)" in out
+    assert "8/8 checks passed (2 within documented tolerance)" in out
+
+
+def test_compare_quick_tolerance_still_fails_beyond_bound(tmp_path):
+    d = _artifacts(tmp_path)
+    expected = _expected()
+    expected["per_query"]["baseline"][0]["tolerance"] = 1
+    (d / "conflicts_by_round.csv").write_text(
+        "session_id,mode,round_1_conflicts,round_2_conflicts_remaining,"
+        "round_3_conflicts_remaining,final_conflicts,converged_round\n"
+        "a,full,2,1,1,1,\n"
+        "b,baseline,0,0,0,0,\n"
+        "c,full,1,1,1,0,2\n"
+        "d,baseline,1,1,1,1,\n"
+    )
+    assert compare_quick(expected, d) == 1
