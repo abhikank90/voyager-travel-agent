@@ -11,6 +11,7 @@
     "derived_on": "2026-10-03",
     "derivation": "Post-fix reference (Round 3 routes through CONFLICT_RESOLVER). Expected = midpoint of the three post-fix runs; tolerances are tight bands around the three identical aggregates. Detection counts are banded for temperature-0 variance (location_mismatch detections varied 16-18 across pre/post runs); introductions are banded 0-0.1/query (the weather route remains theoretically possible). Tolerance 0 marks fixture-resolution invariants.",
     "tolerance_rationale": "Replay decoding is pinned to temperature 0, but a small fraction of runs still differ on rule-level metrics because Claude at temperature 0 is not bit-deterministic across API calls (residual LLM API variance; see TESTING.md, 'Residual variance').",
+    "per_query_tolerance_note": "--quick only: q0 (Greece) carries tolerance 1 in both modes. The flight agent's fare choice varies at temperature 0, so a timing_inefficiency conflict appears or disappears between runs in either mode (results/v1.2/README.md; independent reproduction 2026-10). All other per-query checks are exact.",
     "query_count": 24,
     "queries": 12
   },
@@ -95,7 +96,7 @@
   },
   "per_query": {
     "full": [
-      { "round_1": 2, "final": 2 },
+      { "round_1": 2, "final": 2, "tolerance": 1 },
       { "round_1": 0, "final": 0 },
       { "round_1": 1, "final": 1 },
       { "round_1": 1, "final": 1 },
@@ -109,7 +110,7 @@
       { "round_1": 1, "final": 0 }
     ],
     "baseline": [
-      { "round_1": 2, "final": 2 },
+      { "round_1": 2, "final": 2, "tolerance": 1 },
       { "round_1": 0, "final": 0 },
       { "round_1": 1, "final": 1 },
       { "round_1": 1, "final": 1 },
