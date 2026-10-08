@@ -271,7 +271,8 @@ A real trace from the live capture benchmark (Greece, $2,000, beaches and local 
 ```bash
 git clone https://github.com/abhikank90/voyager-travel-agent.git
 cd voyager-travel-agent
-pip install -e ".[dev]"
+pip install -r requirements-lock.txt   # pinned, known-good versions
+pip install -e . --no-deps
 cp .env.example .env        # add ANTHROPIC_API_KEY (only required key)
 uvicorn api.main:app --reload          # backend
 cd frontend && npm ci && npm run dev   # frontend

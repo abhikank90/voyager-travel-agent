@@ -14,7 +14,9 @@ documentation, tests, and features.
 ## Development setup
 
 1. Clone the repo and create a virtual environment (Python 3.11+ per README).
-2. Install dependencies: `pip install -e ".[dev]"`.
+2. Install dependencies: `pip install -r requirements-lock.txt && pip install -e . --no-deps`.
+   If you change a dependency in `pyproject.toml`, regenerate the lock with
+   `pip freeze --exclude-editable > requirements-lock.txt` from a working environment.
 3. Run the test suite:
    `pytest tests/unit -v --cov=agents --cov=graph --cov-report=xml`
    — all tests must pass before submitting a PR.

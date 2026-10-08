@@ -100,8 +100,11 @@ cp .env.example .env
 ### 2. Install Python dependencies
 
 ```bash
-pip install -e ".[dev]"
+pip install -r requirements-lock.txt
+pip install -e . --no-deps
 ```
+
+`requirements-lock.txt` pins the exact versions the published results were produced with (including `anthropic` below 1.0, since 1.x removed `temperature` from `messages.create()`). `pip install -e ".[dev]"` still works, but resolves to whatever is newest within the ranges in `pyproject.toml`.
 
 ### 3. Install frontend dependencies
 
