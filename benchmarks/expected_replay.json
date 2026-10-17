@@ -1,17 +1,15 @@
 {
   "provenance": {
-    "doc": "Expected values for the post-fix (v1.3) Voyager replay benchmark, checked by scripts/compare_results.py.",
+    "doc": "Expected values for the v1.4 Voyager replay benchmark, checked by scripts/compare_results.py.",
     "inventory_mode": "replay",
     "benchmark_command": "python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12",
     "source_dirs": [
-      "results/v1.3/run1",
-      "results/v1.3/run2",
-      "results/v1.3/run3"
+      "results/v1.4/run1",
+      "results/v1.4/run2"
     ],
-    "derived_on": "2026-10-03",
-    "derivation": "Post-fix reference (Round 3 routes through CONFLICT_RESOLVER). Expected = midpoint of the three post-fix runs; tolerances are tight bands around the three identical aggregates. Detection counts are banded for temperature-0 variance (location_mismatch detections varied 16-18 across pre/post runs); introductions are banded 0-0.1/query (the weather route remains theoretically possible). Tolerance 0 marks fixture-resolution invariants.",
+    "derived_on": "2026-10-16",
+    "derivation": "v1.4 reference. Intent and experience lists are replayed from fixtures, so two consecutive runs produced identical run summaries and per-query results (results/v1.4/run1, run2). Expected = that result. Aggregate tolerance bands are kept from v1.3 as a guard; per-query checks are exact. Tolerance 0 marks fixture-resolution invariants.",
     "tolerance_rationale": "Replay decoding is pinned to temperature 0, but a small fraction of runs still differ on rule-level metrics because Claude at temperature 0 is not bit-deterministic across API calls (residual LLM API variance; see TESTING.md, 'Residual variance').",
-    "per_query_tolerance_note": "--quick only: q0 (Greece) carries tolerance 1 in both modes. The flight agent's fare choice varies at temperature 0, so a timing_inefficiency conflict appears or disappears between runs in either mode (results/v1.2/README.md; independent reproduction 2026-10). All other per-query checks are exact.",
     "query_count": 24,
     "queries": 12
   },
@@ -26,16 +24,16 @@
     "converged_after_round_2_pct": { "expected": 8, "tolerance": 8 },
     "converged_after_round_3_pct": { "expected": 0, "tolerance": 8 },
     "final_unresolved_conflict_rate_pct": { "expected": 75, "tolerance": 8 },
-    "unsatisfiable_constraint_rate_pct": { "expected": 64, "tolerance": 10 },
+    "unsatisfiable_constraint_rate_pct": { "expected": 67, "tolerance": 10 },
     "full.mean_round_1_conflicts": { "expected": 1.25, "tolerance": 0.1 },
     "full.mean_round_2_conflicts_remaining": { "expected": 1.17, "tolerance": 0.1 },
     "full.mean_round_3_conflicts_remaining": { "expected": 1.17, "tolerance": 0.1 },
     "full.mean_introduced": { "expected": 0.0, "tolerance": 0.1 },
     "full.mean_reopened": { "expected": 0.0, "tolerance": 0.0 },
     "full.mean_persistence": { "expected": 1.87, "tolerance": 0.1 },
-    "baseline.mean_round_1_conflicts": { "expected": 1.28, "tolerance": 0.1 },
-    "baseline.mean_round_2_conflicts_remaining": { "expected": 1.28, "tolerance": 0.1 },
-    "baseline.mean_round_3_conflicts_remaining": { "expected": 1.28, "tolerance": 0.1 },
+    "baseline.mean_round_1_conflicts": { "expected": 1.25, "tolerance": 0.1 },
+    "baseline.mean_round_2_conflicts_remaining": { "expected": 1.25, "tolerance": 0.1 },
+    "baseline.mean_round_3_conflicts_remaining": { "expected": 1.25, "tolerance": 0.1 },
     "baseline.mean_introduced": { "expected": 0.0, "tolerance": 0.0 },
     "baseline.mean_reopened": { "expected": 0.0, "tolerance": 0.0 },
     "baseline.mean_persistence": { "expected": 1.0, "tolerance": 0.05 }
@@ -63,7 +61,7 @@
   "rule_level": {
     "detection_round_1": {
       "all_modes": {
-        "location_mismatch": { "expected": 17, "tolerance": 1 },
+        "location_mismatch": { "expected": 16, "tolerance": 1 },
         "timing_inefficiency": { "expected": 14, "tolerance": 1 },
         "weather_activity_mismatch": { "expected": 0, "tolerance": 1 }
       },
@@ -73,13 +71,13 @@
         "weather_activity_mismatch": { "expected": 0, "tolerance": 1 }
       },
       "baseline": {
-        "location_mismatch": { "expected": 9, "tolerance": 1 },
+        "location_mismatch": { "expected": 8, "tolerance": 1 },
         "timing_inefficiency": { "expected": 7, "tolerance": 1 },
         "weather_activity_mismatch": { "expected": 0, "tolerance": 1 }
       }
     },
     "lifecycle_total": {
-      "location_mismatch": { "expected": 17, "tolerance": 1 },
+      "location_mismatch": { "expected": 16, "tolerance": 1 },
       "timing_inefficiency": { "expected": 14, "tolerance": 1 },
       "weather_activity_mismatch": { "expected": 0, "tolerance": 1 }
     },
@@ -96,7 +94,7 @@
   },
   "per_query": {
     "full": [
-      { "round_1": 2, "final": 2, "tolerance": 1 },
+      { "round_1": 2, "final": 2 },
       { "round_1": 0, "final": 0 },
       { "round_1": 1, "final": 1 },
       { "round_1": 1, "final": 1 },
@@ -110,7 +108,7 @@
       { "round_1": 1, "final": 0 }
     ],
     "baseline": [
-      { "round_1": 2, "final": 2, "tolerance": 1 },
+      { "round_1": 2, "final": 2 },
       { "round_1": 0, "final": 0 },
       { "round_1": 1, "final": 1 },
       { "round_1": 1, "final": 1 },
