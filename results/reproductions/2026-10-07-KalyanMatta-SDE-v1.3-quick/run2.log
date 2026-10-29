@@ -1,0 +1,142 @@
+
+SMOKE CHECK — first 3 queries (6 sessions, ~5 min)
+work dir: /var/folders/f2/p1frbgps5gg42pwqcfjwn1_m0000gn/T//voyager-repro.mobS9G
+
+Running 3 queries — both modes back-to-back (inventory=replay)
+Metrics → metrics/sessions.jsonl
+
+
+Running 3 queries × 2 modes (full then baseline)
+
+  [1/3] Greece under $2000, beaches and local food, summer 2026, flying f...
+           [full] ✓
+           [baseline] ✓
+  [2/3] Maldives honeymoon for 2, $5000 budget, snorkeling and luxury res...
+           [full] ✓
+           [baseline] ✓
+  [3/3] Bali for solo traveler, $1500 budget, beaches and yoga, July 2026...
+           [full] ✓
+           [baseline] ✓
+
+  compare mode: 6/6 total runs succeeded
+
+Generating summary...
+
+
+==========================================================
+  VOYAGER METRICS SUMMARY  (6 total sessions)
+==========================================================
+
+  ──────────────────────────────────────────────────────
+  FULL MODE  (3 sessions)
+  ──────────────────────────────────────────────────────
+
+  CONFLICT RATE
+  Queries with ≥1 Round-1 conflict    2/3  (67%)
+  Queries triggering Round 2           2/3  (67%)
+  Queries triggering Round 3           2/3  (67%)
+  Avg Round-1 conflicts per query    1.0
+
+  CONFLICT RESOLUTION  (full mode only)
+  Overall resolution rate            0%
+  Conflict types detected:
+    location_mismatch                        2  (67% of queries)
+
+  SELECTIVE RE-EXECUTION EFFICIENCY
+  Avg agent-call savings vs full re-run  53%
+  (sessions with Round 2/3, n=2)
+
+  CONFLICT COUNTS
+  Avg Round-1 conflicts/query   0.7
+  Avg final conflicts/query     0.7
+
+  CONVERGENCE  (full mode only)
+  Mean convergence round           1.0
+  Converged after Round 1         1/3
+  Converged after Round 2         0/3
+  Converged after Round 3         0/3
+  Post-refinement introductions   0 total (0.0/query)
+  Reopened conflicts              0 total (0.0/query)
+
+  TOKEN USAGE
+  Avg input tokens/query      1,998
+  Avg output tokens/query     3,125
+  Avg cost/query            $0.0451
+
+  LATENCY
+  Avg end-to-end duration   45.1s
+  Avg Round-1 duration      12.6s  (bounded by slowest agent)
+
+  ──────────────────────────────────────────────────────
+  BASELINE MODE  (3 sessions)
+  ──────────────────────────────────────────────────────
+
+  CONFLICT RATE
+  Queries with ≥1 Round-1 conflict    2/3  (67%)
+  Queries triggering Round 2           0/3  (0%)
+  Queries triggering Round 3           0/3  (0%)
+  Avg Round-1 conflicts per query    1.5
+
+  CONFLICT RESOLUTION  (full mode only)
+  Overall resolution rate            0%
+  Conflict types detected:
+    location_mismatch                        2  (67% of queries)
+    timing_inefficiency                      1  (33% of queries)
+
+  CONFLICT COUNTS
+  Avg Round-1 conflicts/query   1.0
+  Avg final conflicts/query     1.0
+
+  CONVERGENCE  (full mode only)
+  Mean convergence round           1.0
+  Converged after Round 1         1/3
+  Converged after Round 2         0/3
+  Converged after Round 3         0/3
+  Post-refinement introductions   0 total (0.0/query)
+  Reopened conflicts              0 total (0.0/query)
+
+  TOKEN USAGE
+  Avg input tokens/query      2,417
+  Avg output tokens/query     5,847
+  Avg cost/query            $0.0866
+
+  LATENCY
+  Avg end-to-end duration   100.2s
+  Avg Round-1 duration      13.7s  (bounded by slowest agent)
+
+  ──────────────────────────────────────────────────────
+  BEFORE / AFTER  COLLABORATION HUB
+  ──────────────────────────────────────────────────────
+  Metric                                 Baseline       Full
+  --------------------------------------------------------
+  Final conflicts / query                     1.0        0.7
+  Avg cost / query (USD)                  $0.0866    $0.0451
+  Avg duration / query (s)                 100.2s      45.1s
+
+==========================================================
+
+
+Results written → ~/Desktop/voyager-travel-agent/results (inventory_mode=replay)
+
+Benchmark output comparison
+  expected: python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12
+  actual:   /var/folders/f2/p1frbgps5gg42pwqcfjwn1_m0000gn/T/voyager-repro.mobS9G/run_results
+
+Quick smoke check — first 3 query(ies), round-1 and final conflict counts
+
+session                      expected actual  result
+q0.full.round_1                     2      1  FAIL
+q0.full.final                       2      1  FAIL
+q0.baseline.round_1                 2      2  PASS
+q0.baseline.final                   2      2  PASS
+q1.full.round_1                     0      0  PASS
+q1.full.final                       0      0  PASS
+q1.baseline.round_1                 0      0  PASS
+q1.baseline.final                   0      0  PASS
+q2.full.round_1                     1      1  PASS
+q2.full.final                       1      1  PASS
+q2.baseline.round_1                 1      1  PASS
+q2.baseline.final                   1      1  PASS
+
+10/12 checks passed
+outputs preserved in: /var/folders/f2/p1frbgps5gg42pwqcfjwn1_m0000gn/T//voyager-repro.mobS9G

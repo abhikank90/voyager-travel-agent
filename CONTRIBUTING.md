@@ -24,6 +24,14 @@ documentation, tests, and features.
    `python3 scripts/benchmark_queries.py --inventory mock --limit 3` (smoke test;
    the full mock benchmark is `python3 scripts/benchmark_queries.py --mode compare --inventory mock`).
 
+### Recording an independent reproduction
+
+If you run `./scripts/reproduce.sh` (or `--quick`) on your own machine, you can add the
+result under `results/reproductions/`: one folder per reproduction, named
+`YYYY-MM-DD-<github-handle>-<version>-<quick|full>/`, with the raw logs and a short
+`REPORT.md`. Add a row to `results/reproductions/README.md`. Commit the logs with
+`git add -f` (`*.log` is gitignored).
+
 ## Pull requests
 
 - Keep PRs focused: one logical change per PR.
