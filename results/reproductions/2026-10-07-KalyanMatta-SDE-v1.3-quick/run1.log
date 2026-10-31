@@ -1,0 +1,119 @@
+
+
+==========================================================
+  VOYAGER METRICS SUMMARY  (6 total sessions)
+==========================================================
+
+  ──────────────────────────────────────────────────────
+  FULL MODE  (3 sessions)
+  ──────────────────────────────────────────────────────
+
+  CONFLICT RATE
+  Queries with ≥1 Round-1 conflict    2/3  (67%)
+  Queries triggering Round 2           2/3  (67%)
+  Queries triggering Round 3           2/3  (67%)
+  Avg Round-1 conflicts per query    1.5
+
+  CONFLICT RESOLUTION  (full mode only)
+  Overall resolution rate            0%
+  Conflict types detected:
+    location_mismatch                        2  (67% of queries)
+    timing_inefficiency                      1  (33% of queries)
+
+  SELECTIVE RE-EXECUTION EFFICIENCY
+  Avg agent-call savings vs full re-run  46%
+  (sessions with Round 2/3, n=2)
+
+  CONFLICT COUNTS
+  Avg Round-1 conflicts/query   1.0
+  Avg final conflicts/query     1.0
+
+  CONVERGENCE  (full mode only)
+  Mean convergence round           1.0
+  Converged after Round 1         1/3
+  Converged after Round 2         0/3
+  Converged after Round 3         0/3
+  Post-refinement introductions   0 total (0.0/query)
+  Reopened conflicts              0 total (0.0/query)
+
+  TOKEN USAGE
+  Avg input tokens/query      2,417
+  Avg output tokens/query     5,558
+  Avg cost/query            $0.0828
+
+  LATENCY
+  Avg end-to-end duration   95.2s
+  Avg Round-1 duration      12.4s  (bounded by slowest agent)
+  Avg Round-2 duration      0.0s  (selective — fewer agents)
+
+  ──────────────────────────────────────────────────────
+  BASELINE MODE  (3 sessions)
+  ──────────────────────────────────────────────────────
+
+  CONFLICT RATE
+  Queries with ≥1 Round-1 conflict    2/3  (67%)
+  Queries triggering Round 2           0/3  (0%)
+  Queries triggering Round 3           0/3  (0%)
+  Avg Round-1 conflicts per query    1.0
+
+  CONFLICT RESOLUTION  (full mode only)
+  Overall resolution rate            0%
+  Conflict types detected:
+    location_mismatch                        2  (67% of queries)
+
+  CONFLICT COUNTS
+  Avg Round-1 conflicts/query   0.7
+  Avg final conflicts/query     0.7
+
+  CONVERGENCE  (full mode only)
+  Mean convergence round           1.0
+  Converged after Round 1         1/3
+  Converged after Round 2         0/3
+  Converged after Round 3         0/3
+  Post-refinement introductions   0 total (0.0/query)
+  Reopened conflicts              0 total (0.0/query)
+
+  TOKEN USAGE
+  Avg input tokens/query      2,002
+  Avg output tokens/query     2,920
+  Avg cost/query            $0.0423
+
+  LATENCY
+  Avg end-to-end duration   43.3s
+  Avg Round-1 duration      13.6s  (bounded by slowest agent)
+
+  ──────────────────────────────────────────────────────
+  BEFORE / AFTER  COLLABORATION HUB
+  ──────────────────────────────────────────────────────
+  Metric                                 Baseline       Full
+  --------------------------------------------------------
+  Final conflicts / query                     0.7        1.0
+  Avg cost / query (USD)                  $0.0423    $0.0828
+  Avg duration / query (s)                  43.3s      95.2s
+
+==========================================================
+
+
+Results written → ~/Desktop/voyager-travel-agent/results (inventory_mode=replay)
+
+Benchmark output comparison
+  expected: python scripts/benchmark_queries.py --mode compare --inventory replay --query-count 12
+  actual:   /var/folders/f2/p1frbgps5gg42pwqcfjwn1_m0000gn/T/voyager-repro.5uCyuP/run_results
+
+Quick smoke check — first 3 query(ies), round-1 and final conflict counts
+
+session                      expected actual  result
+q0.full.round_1                     2      2  PASS
+q0.full.final                       2      2  PASS
+q0.baseline.round_1                 2      1  FAIL
+q0.baseline.final                   2      1  FAIL
+q1.full.round_1                     0      0  PASS
+q1.full.final                       0      0  PASS
+q1.baseline.round_1                 0      0  PASS
+q1.baseline.final                   0      0  PASS
+q2.full.round_1                     1      1  PASS
+q2.full.final                       1      1  PASS
+q2.baseline.round_1                 1      1  PASS
+q2.baseline.final                   1      1  PASS
+
+10/12 checks passed
