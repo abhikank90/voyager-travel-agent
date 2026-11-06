@@ -49,6 +49,27 @@ CONFLICT_RESOLVER: dict[str, str] = {
     "weather_activity_mismatch": "experience",
 }
 
+# Message type the hub uses when routing each conflict to its resolver.
+# "constraint" asks the resolver to change its selection; "insight" passes a preference.
+CONFLICT_MESSAGE_TYPE: dict[str, str] = {
+    "location_mismatch": "constraint",
+    "timing_inefficiency": "insight",
+    "weather_activity_mismatch": "constraint",
+}
+
+assert set(CONFLICT_MESSAGE_TYPE) == set(CONFLICT_RESOLVER), (
+    "CONFLICT_MESSAGE_TYPE and CONFLICT_RESOLVER must cover the same conflict types"
+)
+
+# All conflict types the deterministic rules detect.
+CONFLICT_TYPES: frozenset[str] = frozenset(CONFLICT_RESOLVER)
+
+# Single (to_agent, message_type) key per conflict type, used to find the hub
+# message that carries a conflict's evidence payload.
+CONFLICT_ROUTE: dict[str, tuple[str, str]] = {
+    t: (CONFLICT_RESOLVER[t], CONFLICT_MESSAGE_TYPE[t]) for t in CONFLICT_RESOLVER
+}
+
 
 def _canonical_scalar(value: Any) -> Any:
     """Return a round-independent, unit-canonical rendering of a scalar."""

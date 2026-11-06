@@ -11,7 +11,7 @@ from typing import Any
 from anthropic import Anthropic
 
 from agents.base_agent import BaseAgent
-from agents.conflicts import CONFLICT_RESOLVER
+from agents.conflicts import CONFLICT_MESSAGE_TYPE, CONFLICT_RESOLVER
 from agents.hybrid_conflict_detector import (
     HybridConflictDetector,
     parse_llm_candidates,
@@ -295,7 +295,7 @@ Provide a concise analysis highlighting:
             messages.append({
                 "from_agent": "collaboration_hub",
                 "to_agent": CONFLICT_RESOLVER["location_mismatch"],
-                "message_type": "constraint",
+                "message_type": CONFLICT_MESSAGE_TYPE["location_mismatch"],
                 "content": (
                     "Top experiences are located far from selected hotels."
                     " Consider hotels closer to activity hubs."
@@ -316,7 +316,7 @@ Provide a concise analysis highlighting:
             messages.append({
                 "from_agent": "collaboration_hub",
                 "to_agent": CONFLICT_RESOLVER["timing_inefficiency"],
-                "message_type": "insight",
+                "message_type": CONFLICT_MESSAGE_TYPE["timing_inefficiency"],
                 "content": (
                     "Flight arrives late (20:00+), wasting Day 1."
                     " Look for options that arrive by early afternoon."
@@ -332,7 +332,7 @@ Provide a concise analysis highlighting:
             messages.append({
                 "from_agent": "collaboration_hub",
                 "to_agent": CONFLICT_RESOLVER["weather_activity_mismatch"],
-                "message_type": "constraint",
+                "message_type": CONFLICT_MESSAGE_TYPE["weather_activity_mismatch"],
                 "content": "Weather shows high temperatures or rain. Prioritize indoor or evening activities.",
                 "data": {
                     "weather_concerns": state.get("weather", {}).get("warnings", []),

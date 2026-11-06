@@ -21,19 +21,13 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from agents.conflicts import CONFLICT_ROUTE
+
 _METRICS_DIR = Path(__file__).parent
 _SESSIONS_FILE = _METRICS_DIR / "sessions.jsonl"
 _RESULTS_DIR = Path(__file__).parent.parent / "results"
 _RESULTS_SCHEMA_VERSION = "2"
 _RESEARCH_AGENTS_COUNT = 5
-
-# Maps each typed conflict to the hub message that carries its evidence payload.
-# Each conflict type has exactly one corresponding message: (to_agent, message_type).
-_CONFLICT_TO_MSG: dict[str, tuple[str, str]] = {
-    "location_mismatch":         ("hotel",      "constraint"),
-    "timing_inefficiency":       ("flight",     "insight"),
-    "weather_activity_mismatch": ("experience", "constraint"),
-}
 
 
 def _default_convergence(run_metrics: dict[str, Any]) -> dict[str, Any]:
@@ -154,7 +148,7 @@ def record_session(
             {
                 "type": c.get("type"),
                 "severity": c.get("severity"),
-                "data": r1_msg_data.get(_CONFLICT_TO_MSG.get(c.get("type", ""), ("", "")), {}),
+                "data": r1_msg_data.get(CONFLICT_ROUTE.get(c.get("type", ""), ("", "")), {}),
             }
             for c in round_1_conflicts
         ],
