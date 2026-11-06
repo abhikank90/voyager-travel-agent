@@ -25,7 +25,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, Field
 
-from agents.conflicts import Conflict, conflict_fingerprint
+from agents.conflicts import CONFLICT_TYPES, Conflict, conflict_fingerprint
 
 
 # ── Strict LLM output schema ──────────────────────────────────────────────────
@@ -100,11 +100,7 @@ class ConflictValidator(Protocol):
 # ── Deterministic validators ─────────────────────────────────────────────────
 # Conflict types the deterministic rules can independently prove. A candidate
 # naming any other type has no deterministic validator and is always unverified.
-DETERMINISTIC_CONFLICT_TYPES = frozenset({
-    "location_mismatch",
-    "timing_inefficiency",
-    "weather_activity_mismatch",
-})
+DETERMINISTIC_CONFLICT_TYPES = CONFLICT_TYPES
 
 
 class RuleBackedValidator:
