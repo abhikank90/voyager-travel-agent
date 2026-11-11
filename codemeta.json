@@ -11,6 +11,8 @@
     }
   ],
   "license": "https://spdx.org/licenses/MIT",
+  "version": "1.4.0",
+  "datePublished": "2026-10-28",
   "codeRepository": "https://github.com/abhikank90/voyager-travel-agent",
   "programmingLanguage": ["Python"],
   "identifier": "https://doi.org/10.5281/zenodo.21269752",
